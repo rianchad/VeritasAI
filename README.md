@@ -37,7 +37,7 @@ Veritas.ai is a Chrome extension that extracts discrete factual claims from the 
 - **Breaking/Developing stories** show a prominent banner: *"This is a rapidly developing story — some sources may be outdated"*
 - Sources older than **12 hours** in a breaking story trigger a **confidence downgrade** (one notch), with an explanation appended to the rationale
 - Every source card shows a **relative timestamp** (e.g., `5 hours ago`, `2 days ago`) pulled from the search API
-- Sources older than **24 hours** in a breaking or developing story receive a **subtle muted treatment** so stale sources are visually distinguishable at a glance
+- Sources older than **24 hours** in a breaking or developing story receive a **subtle muted treaFatment** so stale sources are visually distinguishable at a glance
 - Recency adjustment is skipped when publication dates are unavailable — unknown freshness is never penalized
 
 ### 🖊️ Text Selection Fact-Checking
@@ -77,10 +77,16 @@ Veritas.ai is a Chrome extension that extracts discrete factual claims from the 
 - A **live progress bar** tracks how many claims have been checked
 - The sidebar transitions through `Idle → Loading → Streaming → Done` states with clear messaging at each step
 
+### 🔖 Citation Needed Flag
+- When a claim returns **zero supporting sources and zero primary sources** after the full fact-check, a distinct **"No sources found"** badge replaces the standard Low confidence badge
+- Tooltip: *"This claim may be unverifiable or newly reported."*
+- The confidence value stays `Low` — the flag is additive, not a replacement, so the credibility score and history entries are unaffected
+- Triggers on genuine source absence only; claims where search found results but Claude found none relevant enough to cite are treated the same way
+
 ### 🛡️ Edge Case Handling
 - **Paywalled articles:** fact-checks the visible text only; no errors thrown on partial content
 - **Opinion/editorial pieces:** flagged prominently; rationale notes when a claim is the author's argument rather than an established fact
-- **No search results:** returns `Low` confidence with an explanation rather than silently failing
+- **No search results:** returns `Low` confidence with a `citation_needed` flag rather than silently failing
 - **Contradiction sanity checks:** time zone differences, unit differences, and rounding differences are not treated as contradictions
 
 ---
@@ -197,6 +203,7 @@ npm run dev   # or npm start for production
 | 🟢 `High confidence` badge | 3+ independent sources confirm, or a primary source directly confirms, with no credible contradiction |
 | 🟡 `Medium confidence` badge | Some support but gaps remain — indirect evidence, mixed signals, or one credible contradiction |
 | 🟠 `Low confidence` badge | No sources confirm, active contradictions, or results don't address the claim |
+| 🟤 `No sources found` badge | Zero supporting and zero primary sources returned — claim may be unverifiable or newly reported |
 | Credibility score bar | Live average across all resolved claims — green ≥75%, yellow ≥40%, orange below |
 | ⚠️ Bias blindspot warning | All 3+ supporting sources share the same political lean — no opposing perspective found |
 | ⚡ Breaking/Developing banner | Volatility classifier flagged this as an actively developing story |

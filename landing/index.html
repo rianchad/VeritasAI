@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veritas.ai — Real-time AI fact-checking for news</title>
+  <meta name="description" content="Veritas.ai extracts discrete factual claims from any article you're reading, verifies each one against primary sources and cross-outlet coverage, and surfaces confidence levels — without ever issuing a verdict.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:              #1A1A1A;
+      --surface:         #202020;
+      --surface-raised:  #272727;
+      --gold:            #C4973A;
+      --gold-dim:        rgba(196, 151, 58, 0.10);
+      --gold-mid:        rgba(196, 151, 58, 0.30);
+      --text:            #E8DDD0;
+      --text-muted:      #9A8E80;
+      --border:          rgba(196, 151, 58, 0.14);
+      --border-subtle:   rgba(255, 255, 255, 0.07);
+      --radius:          4px;
+      --font-serif:      'DM Serif Display', Georgia, 'Times New Roman', serif;
+      --font-sans:       'Inter', system-ui, -apple-system, sans-serif;
+      --max-w:           1080px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ================================================================
+       NAV
+    ================================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(26, 26, 26, 0.90);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-wordmark {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      user-select: none;
+    }
+
+    .nav-wordmark span { color: var(--gold); }
+
+    /* ================================================================
+       BUTTONS
+    ================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s ease, background 0.15s ease,
+                  border-color 0.15s ease, transform 0.1s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #111111;
+      border-color: var(--gold);
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border-color: rgba(232, 221, 208, 0.22);
+    }
+
+    .btn-outline:hover {
+      border-color: rgba(232, 221, 208, 0.45);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* ================================================================
+       HERO
+    ================================================================ */
+    .hero {
+      position: relative;
+      min-height: calc(100vh - 61px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 48px;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Film-grain texture — an SVG feTurbulence noise tiled and animated */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: -60%;
+      width: 220%;
+      height: 220%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-size: 300px 300px;
+      opacity: 0.038;
+      pointer-events: none;
+      animation: grain 8s steps(1) infinite;
+    }
+
+    /* Radial vignette so content lifts off the background */
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        ellipse 80% 65% at 50% 45%,
+        transparent 0%,
+        rgba(26, 26, 26, 0.55) 100%
+      );
+      pointer-events: none;
+    }
+
+    @keyframes grain {
+      0%   { transform: translate(0%,    0%);  }
+      11%  { transform: translate(-3%,  -8%);  }
+      22%  { transform: translate(-10%,  5%);  }
+      33%  { transform: translate(6%,  -18%);  }
+      44%  { transform: translate(-4%,  19%);  }
+      55%  { transform: translate(-13%,  9%);  }
+      66%  { transform: translate(13%,   0%);  }
+      77%  { transform: translate(0%,   13%);  }
+      88%  { transform: translate(3%,   30%);  }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 28px;
+      padding: 5px 13px;
+      border: 1px solid var(--gold-mid);
+      border-radius: 2px;
+      background: var(--gold-dim);
+    }
+
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(38px, 5.8vw, 66px);
+      font-weight: 400;
+      line-height: 1.08;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-sub {
+      font-size: clamp(15px, 1.9vw, 18px);
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto 44px;
+      line-height: 1.75;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Gentle scroll-down hint */
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      color: var(--text-muted);
+      opacity: 0.4;
+      animation: bob 2.6s ease-in-out infinite;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateX(-50%) translateY(0);   }
+      50%       { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ================================================================
+       SHARED SECTION UTILITIES
+    ================================================================ */
+    .section-eyebrow {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    /* ================================================================
+       DEMO VIDEO
+    ================================================================ */
+    .demo-section {
+      padding: 72px 48px 88px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .demo-inner { max-width: 840px; margin: 0 auto; }
+
+    .demo-embed-wrapper {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 */
+      height: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      margin-bottom: 18px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.50);
+    }
+
+    /*
+      ============================================================
+      REPLACE THIS PLACEHOLDER WITH YOUR LOOM EMBED:
+
+      1. Delete the entire .demo-placeholder div below
+      2. Paste in:
+
+         <iframe
+           src="https://www.loom.com/embed/YOUR_LOOM_VIDEO_ID"
+           style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+           allowfullscreen
+         ></iframe>
+
+      3. Replace YOUR_LOOM_VIDEO_ID with the ID from your Loom share URL
+         (loom.com/share/xxxxxxxxxxxxxxxx  →  use the xxxxxxxxxxxxxxxx part)
+      ============================================================
+    */
+    .demo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--text-muted);
+    }
+
+    .demo-play-ring {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .demo-placeholder p   { font-size: 14px; }
+    .demo-placeholder small { font-size: 12px; opacity: 0.5; }
+
+    .demo-caption {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* ================================================================
+       FEATURES
+    ================================================================ */
+    .features-section {
+      padding: 72px 48px 88px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .features-inner { max-width: var(--max-w); margin: 0 auto; }
+
+    .features-heading {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 3.6vw, 42px);
+      font-weight: 400;
+      text-align: center;
+      margin-bottom: 64px;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 36px 30px 32px;
+      position: relative;
+      overflow: hidden;
+      /* Starts invisible — JS adds .visible on scroll */
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease, background 0.2s ease;
+    }
+
+    /* Gold top-border accent */
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--gold);
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+
+    .feature-card:hover                { background: var(--surface-raised); }
+    .feature-card:hover::before        { opacity: 1; }
+    .feature-card.visible              { opacity: 1; transform: translateY(0); }
+    .feature-card:nth-child(2)         { transition-delay: 0.10s; }
+    .feature-card:nth-child(3)         { transition-delay: 0.20s; }
+
+    .feature-icon {
+      width: 34px;
+      height: 34px;
+      color: var(--gold);
+      margin-bottom: 22px;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: var(--font-serif);
+      font-size: 21px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ================================================================
+       TRUST LINE
+    ================================================================ */
+    .trust-section {
+      padding: 88px 48px;
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .trust-divider {
+      width: 36px;
+      height: 1px;
+      background: var(--gold);
+      margin: 0 auto 44px;
+      opacity: 0.55;
+    }
+
+    .trust-line {
+      font-family: var(--font-serif);
+      font-size: clamp(22px, 3.2vw, 36px);
+      font-style: italic;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.5;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    .trust-line.visible { opacity: 1; transform: translateY(0); }
+
+    .trust-line strong {
+      color: var(--text);
+      font-style: normal;
+    }
+
+    /* ================================================================
+       FOOTER
+    ================================================================ */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-left a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-left a:hover { color: var(--text); }
+
+    .footer-right a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-right a:hover { color: var(--gold); }
+
+    /* ================================================================
+       RESPONSIVE
+    ================================================================ */
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+      /* Remove stagger on mobile — cards stack so delay looks broken */
+      .feature-card:nth-child(2),
+      .feature-card:nth-child(3) { transition-delay: 0s; }
+    }
+
+    @media (max-width: 680px) {
+      nav                { padding: 16px 20px; }
+      .hero              { padding: 72px 20px; min-height: auto; }
+      .demo-section,
+      .features-section,
+      .trust-section     { padding: 60px 20px; }
+      footer             { padding: 24px 20px; }
+      .hero-scroll-hint  { display: none; }
+    }
+
+    @media (max-width: 440px) {
+      .hero-actions       { flex-direction: column; width: 100%; }
+      .hero-actions .btn  { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ================================================================
+     NAV
+================================================================ -->
+<nav>
+  <a href="#" class="nav-wordmark">Veritas<span>.ai</span></a>
+  <!-- REPLACE: swap REPLACE_WITH_YOUR_EMAIL with your email address -->
+  <a href="mailto:rianchadha@gmail.com?subject=Veritas.ai%20Demo%20Request"
+     class="btn btn-primary">Request a Demo</a>
+</nav>
+
+
+<!-- ================================================================
+     HERO
+================================================================ -->
+<section class="hero">
+  <div class="hero-content">
+
+    <span class="hero-eyebrow">Chrome Extension &nbsp;&middot;&nbsp; Powered by Claude</span>
+
+    <h1>Real-time AI fact-checking<br>for <em>news articles</em></h1>
+
+    <p class="hero-sub">
+      Veritas.ai extracts discrete factual claims from any article you're reading,
+      verifies each one against primary sources and cross-outlet coverage, and
+      surfaces confidence levels — without ever issuing a verdict.
+    </p>
+
+    <div class="hero-actions">
+      <!-- REPLACE: swap REPLACE_WITH_YOUR_EMAIL with your email address -->
+      <a href="mailto:rianchadha@gmail.com?subject=Veritas.ai%20Demo%20Request"
+         class="btn btn-primary">Request a Demo</a>
+      <!-- REPLACE: swap # with your Chrome Web Store URL once published -->
+      <a href="#" class="btn btn-outline">View on Chrome Web Store</a>
+    </div>
+
+  </div>
+
+  <div class="hero-scroll-hint">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     DEMO VIDEO
+================================================================ -->
+<div class="demo-section">
+  <div class="demo-inner">
+
+    <span class="section-eyebrow">See it in action</span>
+
+    <div class="demo-embed-wrapper">
+      <!--
+        ============================================================
+        REPLACE THIS PLACEHOLDER WITH YOUR LOOM EMBED
+
+        1. Delete the .demo-placeholder div below (lines until closing </div>)
+        2. Paste in this block (swap YOUR_LOOM_VIDEO_ID):
+
+           <iframe
+             src="https://www.loom.com/embed/YOUR_LOOM_VIDEO_ID"
+             style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+             allowfullscreen
+           ></iframe>
+
+           Find YOUR_LOOM_VIDEO_ID in the Loom share URL:
+           loom.com/share/abcdef1234567890  →  ID is  abcdef1234567890
+        ============================================================
+      -->
+      <div class="demo-placeholder">
+        <div class="demo-play-ring">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+        <p>Paste your Loom embed URL here</p>
+        <small>See the HTML comment above for instructions</small>
+      </div>
+    </div>
+
+    <p class="demo-caption">Live demo — fact-checking a breaking news article in real time</p>
+
+  </div>
+</div>
+
+
+<!-- ================================================================
+     FEATURES
+================================================================ -->
+<div class="features-section">
+  <div class="features-inner">
+
+    <h2 class="features-heading">Built for the way news actually works</h2>
+
+    <div class="features-grid">
+
+      <!-- Card 1: Claim verification -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <polyline points="9 15 11 17 15 13"/>
+        </svg>
+        <p class="feature-title">Claim-by-claim verification</p>
+        <p class="feature-desc">
+          Extracts 5–8 checkable claims and verifies each independently —
+          statistics, quotes, attributions, stated events. Not a summary.
+          Not a sentiment score.
+        </p>
+      </div>
+
+      <!-- Card 2: Political lean -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Spectrum bar with center marker -->
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3"  y1="8"  x2="3"  y2="16"/>
+          <line x1="21" y1="8"  x2="21" y2="16"/>
+          <line x1="12" y1="9"  x2="12" y2="15" stroke-width="2"/>
+          <circle cx="9" cy="12" r="2.2" fill="currentColor" stroke="none"/>
+        </svg>
+        <p class="feature-title">Political lean labeling</p>
+        <p class="feature-desc">
+          Every source labeled Left to Right so you see where support comes
+          from — not just how many outlets agree, but whether they span the
+          political spectrum.
+        </p>
+      </div>
+
+      <!-- Card 3: Divergence -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5"  cy="12" r="2.5"/>
+          <circle cx="19" cy="5"  r="2.5"/>
+          <circle cx="19" cy="19" r="2.5"/>
+          <line x1="7.2"  y1="11.1" x2="16.8" y2="6.4"/>
+          <line x1="7.2"  y1="12.9" x2="16.8" y2="17.6"/>
+          <line x1="19"   y1="7.5"  x2="19"   y2="16.5"/>
+        </svg>
+        <p class="feature-title">Coverage divergence</p>
+        <p class="feature-desc">
+          CNN says X, Fox says Y, primary source says Z — surfaced
+          automatically. Identifies where outlets with different lean labels
+          specifically disagree, and why it matters.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     TRUST LINE
+================================================================ -->
+<div class="trust-section">
+  <div class="trust-divider"></div>
+  <p class="trust-line">
+    <strong>Never issues a true or false verdict.</strong><br>
+    Confidence levels and cited sources — you decide.
+  </p>
+</div>
+
+
+<!-- ================================================================
+     FOOTER
+================================================================ -->
+<footer>
+  <div class="footer-left">
+    Veritas.ai &nbsp;&middot;&nbsp;
+    Built by <!-- REPLACE: your name --> Rian Chadha &nbsp;&middot;&nbsp;
+    <!-- REPLACE: your email address in both the href and the link text -->
+    <a href="mailto:rianchadha@gmail.com">rianchadha@gmail.com</a>
+  </div>
+  <div class="footer-right">
+    <!-- REPLACE: swap # with your Chrome Web Store URL once published -->
+    <a href="#">Chrome Web Store &rarr;</a>
+  </div>
+</footer>
+
+
+<!-- ================================================================
+     SCROLL ANIMATIONS
+================================================================ -->
+<script>
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12 }
+  );
+
+  document.querySelectorAll('.feature-card, .trust-line').forEach((el) => {
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>

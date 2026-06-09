@@ -77,7 +77,9 @@ app.post("/api/check-claim", async (req, res) => {
     ? volatility
     : "stable";
   try {
-    const result = await factCheckClaim(claim.trim(), "news", safeVolatility);
+    // User-selected text has no extracted context — pass null and let the
+    // pipeline use the claim itself as the search query.
+    const result = await factCheckClaim(claim.trim(), null, "news", safeVolatility);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -87,7 +89,10 @@ app.post("/api/check-claim", async (req, res) => {
 // Streams results as Server-Sent Events so the sidebar can render each
 // claim's fact-check as soon as it's ready, instead of waiting on all of them.
 app.post("/api/analyze", analyzeLimiter, async (req, res) => {
-  const { articleText, articleTitle = "" } = req.body || {};
+  const { articleText, articleTitle = "", claimCount } = req.body || {};
+  const n = Number(claimCount);
+  const safeClaimCount = claimCount === "auto" ? "auto"
+    : (Number.isInteger(n) && n >= 1 && n <= 10) ? n : 5;
   if (typeof articleText !== "string" || articleText.trim().length < 200) {
     return res.status(400).json({ error: "articleText must be at least 200 characters." });
   }
@@ -108,13 +113,15 @@ app.post("/api/analyze", analyzeLimiter, async (req, res) => {
     const volatility = await classifyVolatility(articleTitle, articleText.slice(0, 600));
     send("volatility", { volatility });
 
-    const { pieceType, claims } = await extractClaims(articleText);
-    send("claims", { pieceType, claims });
+    const { pieceType, claims } = await extractClaims(articleText, safeClaimCount);
+    // Send only claim strings to the sidebar — the context field is server-internal
+    // and flows back to the client as part of each claim_result, not the claims list.
+    send("claims", { pieceType, claims: claims.map((c) => c.claim) });
 
     await Promise.all(
-      claims.map(async (claim) => {
+      claims.map(async ({ claim, context }) => {
         try {
-          const result = await factCheckClaim(claim, pieceType, volatility);
+          const result = await factCheckClaim(claim, context, pieceType, volatility);
           send("claim_result", result);
         } catch (error) {
           send("claim_error", { claim, error: error.message });
@@ -312,7 +319,8 @@ a:hover{color:var(--text)}
 .claim-text{margin:0;font-family:var(--font-sans);font-size:14px;font-weight:400;line-height:1.5;color:var(--text)}
 .claim-body{padding:10px 12px 12px;border-top:1px solid var(--rule)}
 .rationale{font-family:var(--font-sans);font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px}
-.section-heading{margin:10px 0 5px;font-family:var(--font-sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted)}
+.section-heading{margin:14px 0 6px;font-family:var(--font-sans);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);padding-top:10px;border-top:1px solid var(--rule)}
+.section-heading:first-child{margin-top:0;padding-top:0;border-top:none}
 .source-list{list-style:none;display:flex;flex-direction:column;gap:6px}
 .source-list li{line-height:1.4}
 .source-list a{font-family:var(--font-sans);font-size:13px;color:var(--text-secondary);display:block}

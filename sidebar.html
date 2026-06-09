@@ -17,7 +17,15 @@
         <span class="header__name">Veritas.ai</span>
         <span class="header__tagline">Fact Intelligence</span>
       </div>
-      <img class="header__logo" src="icons/icon128.png" alt="" />
+      <div class="header__actions">
+        <button id="header-history-btn" class="header__icon-btn" title="View history" aria-label="View history">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+        <button id="header-gear-btn" class="header__icon-btn" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <img class="header__logo" src="icons/icon128.png" alt="" />
+      </div>
     </header>
     <div class="header__rule"></div>
 
@@ -75,16 +83,35 @@
         </div>
         <ul id="claims-list" class="claims-list"></ul>
         <div id="share-row" class="share-row hidden">
-          <button id="share-btn" class="btn btn--ghost btn--sm">Share analysis</button>
+          <button id="share-btn" class="btn btn--ghost btn--sm">Copy share link</button>
+          <button id="export-pdf-btn" class="btn btn--ghost btn--sm">Export PDF</button>
           <span id="share-toast" class="share-toast hidden">Link copied to clipboard</span>
         </div>
       </section>
+
+      <section id="state-settings" class="state hidden">
+        <div class="secondary-view-header">
+          <button id="settings-back-btn" class="secondary-back-btn" aria-label="Back">←</button>
+          <span class="secondary-view-title">Settings</span>
+        </div>
+        <div id="settings-content" class="settings-content"></div>
+      </section>
+
+      <section id="state-history" class="state hidden">
+        <div class="secondary-view-header">
+          <button id="history-back-btn" class="secondary-back-btn" aria-label="Back">←</button>
+          <span class="secondary-view-title">History</span>
+        </div>
+        <div id="history-content" class="history-content"></div>
+      </section>
+
     </main>
 
     <footer class="footer">
       <p>Veritas.ai surfaces sources and confidence levels — it never issues verdicts.</p>
     </footer>
 
+    <script src="sourceLean.js"></script>
     <script src="sidebar.js"></script>
   </body>
 </html>

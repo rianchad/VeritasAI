@@ -24,12 +24,16 @@ at it by setting `API_BASE_URL` in [`sidebar.js`](../sidebar.js).
   `text/event-stream` of:
   - `volatility` — `{ volatility }` (`"breaking"` | `"developing"` | `"stable"`) before claims arrive
   - `claims` — `{ pieceType, claims }` once extraction finishes
-  - `claim_result` — one fact-check result per claim, as each finishes
+  - `claim_result` — one fact-check result per claim, as each finishes; includes
+    `citation_needed: true` when no supporting or primary sources were found
   - `claim_error` — `{ claim, error }` if a single claim's check fails
   - `fatal_error` — `{ error }` if the pipeline fails before producing claims
   - `done` — stream complete
 - `POST /api/check-claim` — body `{ "claim": "...", "volatility": "stable" }`;
-  fact-checks a single user-selected claim; returns plain JSON (not SSE)
+  fact-checks a single user-selected claim; returns plain JSON (not SSE).
+  Result includes `citation_needed: true` when both `supporting_sources` and
+  `primary_sources` are empty after synthesis — indicates the claim may be
+  unverifiable or too newly reported to have coverage.
 - `POST /api/share` — body `{ "articleUrl", "articleTitle", "results" }`,
   rate-limited to **20 requests / hour per IP**; stores a completed fact-check
   result set (7-day TTL in `shares.db`) and returns `{ "shareUrl": "..." }`

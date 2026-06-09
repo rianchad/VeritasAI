@@ -90,38 +90,59 @@ async function classifyVolatility(headline, intro) {
 
 // ---- Agent 1: Claim Extractor ----------------------------------------------
 
-const CLAIM_EXTRACTION_PROMPT = (articleText) => `You are a fact-checking assistant that identifies discrete, checkable factual claims in a news article.
+const CLAIM_EXTRACTION_PROMPT = (articleText, claimCount) => {
+  const countInstruction = claimCount === "auto"
+    ? "Extract as many important, distinct factual claims as the article warrants — typically 5–8, fewer for short pieces, no more than 10."
+    : `Extract exactly the ${claimCount} most important distinct factual claims.`;
 
-Read the article text below and extract as many distinct factual claims — specific, checkable assertions (statistics, quotes, events, attributions),
-not opinions or vague statements. Prefer claims a reader would want verified and claims that may be controversial.
+  return `You are a fact-checking assistant that identifies discrete, checkable factual claims in a news article.
+
+Read the article text below. ${countInstruction} Focus on specific, checkable assertions (statistics, quotes, events, attributions) — not opinions or vague statements. Prefer claims a reader would want verified and claims that may be controversial.
 
 Also classify whether the piece reads as straight news reporting or opinion/editorial/analysis.
+
+For each claim, also provide a one-sentence context field that resolves any vague references — pronouns, demonstratives ("such services", "the measure", "this bill", "those cuts"), and shorthand — by substituting the specific referent found in the surrounding article text. If the claim is already fully self-contained, set context to be identical to the claim.
 
 Respond with ONLY a JSON object in this exact shape, no prose, no markdown fences:
 {
   "piece_type": "news" | "opinion" | "analysis",
-  "claims": ["claim 1 as a self-contained sentence", "claim 2", ...]
+  "claims": [
+    {"claim": "verbatim or lightly cleaned factual sentence from the article", "context": "same sentence with all vague references resolved to their specific referents"},
+    ...
+  ]
 }
 
 Article text:
 """
 ${articleText.slice(0, 12000)}
 """`;
+};
 
-async function extractClaims(articleText) {
-  const result = await askClaudeForJson(CLAIM_EXTRACTION_PROMPT(articleText), {
-    maxTokens: 1200,
+async function extractClaims(articleText, claimCount = 5) {
+  const result = await askClaudeForJson(CLAIM_EXTRACTION_PROMPT(articleText, claimCount), {
+    maxTokens: 1500,
   });
 
-  if (!Array.isArray(result?.claims) || result.claims.length < 3) {
-    throw new Error("Claim extraction returned too few claims.");
+  if (!Array.isArray(result?.claims) || result.claims.length < 1) {
+    throw new Error("Claim extraction returned no claims.");
   }
+
+  const maxClaims = claimCount === "auto" ? 10 : claimCount;
+
+  // Normalise: Claude may return strings (old format) or {claim, context} objects.
+  const normalised = result.claims.slice(0, maxClaims).map((item) => {
+    if (typeof item === "string") return { claim: item, context: item };
+    return {
+      claim: String(item.claim || ""),
+      context: String(item.context || item.claim || ""),
+    };
+  });
 
   return {
     pieceType: result.piece_type === "opinion" || result.piece_type === "analysis"
       ? result.piece_type
       : "news",
-    claims: result.claims.slice(0, 8),
+    claims: normalised,
   };
 }
 
@@ -149,11 +170,16 @@ function formatSourcesForPrompt(sources) {
     .join("\n\n");
 }
 
-const FACT_CHECK_PROMPT = (claim, sources, pieceType) => `You are a careful, neutral research assistant helping a reader understand the context behind a factual claim from a news article. You never issue a hard true/false verdict — you assess how well-supported the claim is and surface sources across the political spectrum.
-${pieceType !== "news" ? `\nContext: This claim comes from a ${pieceType} piece. Assess whether it is stated as objective fact or as the author's interpretation/argument — note this in your confidence_rationale if relevant.\n` : ""}
+const FACT_CHECK_PROMPT = (claim, context, sources, pieceType) => `You are a careful, neutral research assistant helping a reader understand the context behind a factual claim from a news article. You never issue a hard true/false verdict — you assess how well-supported the claim is and surface sources across the political spectrum.
+${pieceType !== "news" ? `\nNote: This claim comes from a ${pieceType} piece. Assess whether it is stated as objective fact or as the author's interpretation/argument — note this in your confidence_rationale if relevant.\n` : ""}
 Claim to assess:
 "${claim}"
+${context && context !== claim ? `
+Resolved claim (vague references replaced with their specific referents from the article):
+"${context}"
 
+Before formulating your assessment, resolve all pronouns and vague references in the claim using the resolved version above. Base your search query reasoning and synthesis on the resolved claim, not the shorthand form.
+` : ""}
 Here is a set of search results gathered about this claim. Use ONLY these results plus your general knowledge of how to weigh source quality:
 
 ${formatSourcesForPrompt(sources)}
@@ -218,13 +244,18 @@ function applyRecencyAdjustment(result, volatility) {
   };
 }
 
-async function factCheckClaim(claim, pieceType = "news", volatility = "stable") {
-  const rawResults = await searchWeb(claim, { count: 8 });
+async function factCheckClaim(claim, context = null, pieceType = "news", volatility = "stable") {
+  // Use the resolved context as the search query when available — it contains
+  // the specific referents that vague phrases ("such services", "the measure")
+  // were pointing to, which produces more accurate search results.
+  const searchQuery = (context && context !== claim) ? context : claim;
+  const rawResults = await searchWeb(searchQuery, { count: 8 });
   const sources = annotateSources(rawResults);
 
   if (sources.length === 0) {
     return {
       claim,
+      context: context || claim,
       confidence: "low",
       confidence_rationale: "No search results were found for this claim.",
       supporting_sources: [],
@@ -232,10 +263,11 @@ async function factCheckClaim(claim, pieceType = "news", volatility = "stable") 
       primary_sources: [],
       divergence_summary: "No coverage found to compare.",
       outlet_positions: [],
+      citation_needed: true,
     };
   }
 
-  const synthesis = await askClaudeForJson(FACT_CHECK_PROMPT(claim, sources, pieceType), {
+  const synthesis = await askClaudeForJson(FACT_CHECK_PROMPT(claim, context, sources, pieceType), {
     maxTokens: 1500,
   });
 
@@ -267,7 +299,14 @@ async function factCheckClaim(claim, pieceType = "news", volatility = "stable") 
     primary_sources: enrichDates(synthesis.primary_sources),
   };
 
-  return { claim, ...applyRecencyAdjustment(enriched, volatility) };
+  const finalResult = { claim, context: context || claim, ...applyRecencyAdjustment(enriched, volatility) };
+  if (
+    (!finalResult.supporting_sources || finalResult.supporting_sources.length === 0) &&
+    (!finalResult.primary_sources || finalResult.primary_sources.length === 0)
+  ) {
+    finalResult.citation_needed = true;
+  }
+  return finalResult;
 }
 
 module.exports = { classifyVolatility, extractClaims, factCheckClaim };
