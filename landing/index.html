@@ -550,46 +550,28 @@
 
 
 <!-- ================================================================
-     DEMO VIDEO
-================================================================ -->
+     DEMO VIDEO — commented out until Loom embed is ready
+     To restore: uncomment the block below and replace YOUR_LOOM_VIDEO_ID
+     with the ID from your Loom share URL (loom.com/share/XXXXXXXX)
+================================================================
 <div class="demo-section">
   <div class="demo-inner">
 
     <span class="section-eyebrow">See it in action</span>
 
     <div class="demo-embed-wrapper">
-      <!--
-        ============================================================
-        REPLACE THIS PLACEHOLDER WITH YOUR LOOM EMBED
-
-        1. Delete the .demo-placeholder div below (lines until closing </div>)
-        2. Paste in this block (swap YOUR_LOOM_VIDEO_ID):
-
-           <iframe
-             src="https://www.loom.com/embed/YOUR_LOOM_VIDEO_ID"
-             style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-             allowfullscreen
-           ></iframe>
-
-           Find YOUR_LOOM_VIDEO_ID in the Loom share URL:
-           loom.com/share/abcdef1234567890  →  ID is  abcdef1234567890
-        ============================================================
-      -->
-      <div class="demo-placeholder">
-        <div class="demo-play-ring">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-        </div>
-        <p>Paste your Loom embed URL here</p>
-        <small>See the HTML comment above for instructions</small>
-      </div>
+      <iframe
+        src="https://www.loom.com/embed/YOUR_LOOM_VIDEO_ID"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allowfullscreen
+      ></iframe>
     </div>
 
     <p class="demo-caption">Live demo — fact-checking a breaking news article in real time</p>
 
   </div>
 </div>
+================================================================ -->
 
 
 <!-- ================================================================
@@ -612,7 +594,7 @@
         </svg>
         <p class="feature-title">Claim-by-claim verification</p>
         <p class="feature-desc">
-          Extracts 5–8 checkable claims and verifies each independently —
+          Extracts 5–8 checkable claims and verifies each independently with
           statistics, quotes, attributions, stated events. Not a summary.
           Not a sentiment score.
         </p>
@@ -632,7 +614,7 @@
         <p class="feature-title">Political lean labeling</p>
         <p class="feature-desc">
           Every source labeled Left to Right so you see where support comes
-          from — not just how many outlets agree, but whether they span the
+          from. Not just how many outlets agree, but whether they span the
           political spectrum.
         </p>
       </div>
@@ -650,7 +632,7 @@
         </svg>
         <p class="feature-title">Coverage divergence</p>
         <p class="feature-desc">
-          CNN says X, Fox says Y, primary source says Z — surfaced
+          CNN says X, Fox says Y, primary source says Z, all surfaced
           automatically. Identifies where outlets with different lean labels
           specifically disagree, and why it matters.
         </p>
