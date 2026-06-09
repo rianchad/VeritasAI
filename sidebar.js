@@ -2,8 +2,7 @@
 // content script, then streams claim extraction + fact-checking results from
 // the Veritas.ai backend (server/) via Server-Sent Events.
 
-const API_BASE_URL = "https://veritasai.railway.app";
-
+const API_BASE_URL = "https://veritasai-production-2477.up.railway.app";
 // ---- DOM refs ---------------------------------------------------------------
 
 const analyzeBtn = document.getElementById("analyze-btn");
