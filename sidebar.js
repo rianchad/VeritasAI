@@ -287,10 +287,20 @@ async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
-
 async function getArticleFromActiveTab() {
   const tab = await getActiveTab();
   if (!tab?.id) throw new Error("No active tab found.");
+
+  // Programmatically inject content script if not already present
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"],
+    });
+  } catch {
+    // Already injected — safe to ignore
+  }
+
   return chrome.tabs.sendMessage(tab.id, { type: "GET_ARTICLE" });
 }
 
