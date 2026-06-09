@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — VeritasAI</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="icon128.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icon16.png">
+  <meta name="description" content="VeritasAI privacy policy — what data we handle, how we handle it, and what we do not do.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:              #1A1A1A;
+      --surface:         #202020;
+      --surface-raised:  #272727;
+      --gold:            #C4973A;
+      --gold-dim:        rgba(196, 151, 58, 0.10);
+      --gold-mid:        rgba(196, 151, 58, 0.30);
+      --text:            #E8DDD0;
+      --text-muted:      #9A8E80;
+      --border:          rgba(196, 151, 58, 0.14);
+      --border-subtle:   rgba(255, 255, 255, 0.07);
+      --radius:          4px;
+      --font-serif:      'DM Serif Display', Georgia, 'Times New Roman', serif;
+      --font-sans:       'Inter', system-ui, -apple-system, sans-serif;
+      --max-w:           720px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ================================================================
+       NAV
+    ================================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(26, 26, 26, 0.90);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-wordmark {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      user-select: none;
+    }
+
+    .nav-wordmark span { color: var(--gold); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s ease, background 0.15s ease,
+                  border-color 0.15s ease, transform 0.1s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #111111;
+      border-color: var(--gold);
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+
+    /* ================================================================
+       POLICY CONTENT
+    ================================================================ */
+    .policy-wrap {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 72px 48px 100px;
+    }
+
+    .policy-eyebrow {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+      padding: 5px 13px;
+      border: 1px solid var(--gold-mid);
+      border-radius: 2px;
+      background: var(--gold-dim);
+    }
+
+    .policy-title {
+      font-family: var(--font-serif);
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .policy-updated {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 56px;
+    }
+
+    .policy-body h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+      margin: 48px 0 14px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .policy-body h2:first-child {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .policy-body h3 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 28px 0 10px;
+    }
+
+    .policy-body p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.75;
+    }
+
+    .policy-body strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .policy-body ul {
+      list-style: none;
+      margin: 0 0 16px;
+      padding: 0;
+    }
+
+    .policy-body ul li {
+      position: relative;
+      padding-left: 18px;
+      color: var(--text-muted);
+      line-height: 1.75;
+      margin-bottom: 6px;
+    }
+
+    .policy-body ul li::before {
+      content: '–';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+    }
+
+    .policy-body a {
+      color: var(--gold);
+      text-decoration: none;
+      border-bottom: 1px solid var(--gold-mid);
+      transition: border-color 0.15s ease;
+    }
+
+    .policy-body a:hover {
+      border-color: var(--gold);
+    }
+
+    /* Data retention table */
+    .policy-table-wrap {
+      overflow-x: auto;
+      margin: 0 0 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-subtle);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead tr {
+      background: var(--surface-raised);
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    td:first-child { color: var(--text); }
+
+    tr:last-child td { border-bottom: none; }
+
+    tbody tr:nth-child(even) { background: var(--surface); }
+
+    /* ================================================================
+       FOOTER
+    ================================================================ */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 48px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    .footer-right { display: flex; gap: 20px; }
+
+    @media (max-width: 680px) {
+      nav            { padding: 16px 20px; }
+      .policy-wrap   { padding: 48px 20px 72px; }
+      footer         { padding: 24px 20px; flex-direction: column; gap: 12px; text-align: center; }
+      .footer-right  { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-wordmark">Veritas<span>AI</span></a>
+  <a href="mailto:rianchadha@gmail.com?subject=VeritasAI%20Demo%20Request"
+     class="btn btn-primary">Request a Demo</a>
+</nav>
+
+
+<!-- POLICY CONTENT -->
+<div class="policy-wrap">
+
+  <span class="policy-eyebrow">Legal</span>
+  <h1 class="policy-title">Privacy Policy</h1>
+  <p class="policy-updated">Last updated: June 9, 2026</p>
+
+  <div class="policy-body">
+
+    <h2>Overview</h2>
+    <p>
+      VeritasAI is a Chrome extension that fact-checks news articles in real time.
+      We are committed to protecting your privacy. This policy explains what data
+      we handle, how we handle it, and what we do not do.
+    </p>
+
+    <h2>What We Collect</h2>
+    <p><strong>We do not collect any personally identifiable information.</strong></p>
+    <p>
+      VeritasAI does not require an account, does not track users, and does not
+      store any information that could identify you.
+    </p>
+
+    <h3>Article Text</h3>
+    <p>
+      When you click "Analyze this page," the visible text of the article you are
+      reading is sent to our backend server for processing. This text is used solely
+      to extract and verify factual claims. It is never stored, logged, or associated
+      with any user identity.
+    </p>
+
+    <h3>Anonymized Analytics</h3>
+    <p>We collect anonymized, aggregate usage data to improve the product. This includes:</p>
+    <ul>
+      <li>Number of claims checked per session</li>
+      <li>Confidence level distribution across claims</li>
+      <li>Outlet names that appear as sources</li>
+      <li>Article piece type (news, opinion, analysis)</li>
+      <li>Volatility classification (breaking, developing, stable)</li>
+    </ul>
+    <p>
+      This data contains no article content, no URLs, no user identifiers, and no
+      personally identifiable information of any kind.
+    </p>
+
+    <h3>Shared Fact-Check Links</h3>
+    <p>
+      If you choose to generate a shareable link, the fact-check results for that
+      specific article are stored on our server for 7 days, after which they are
+      automatically deleted. Shared links contain no user information — only the
+      fact-check output for the article.
+    </p>
+
+    <h3>Extension Settings</h3>
+    <p>
+      Your preferences (e.g. lean label visibility, claim count, auto-analyze toggle,
+      domain lists) are stored locally in your browser using Chrome's
+      <code style="font-size:13px;color:var(--text);background:var(--surface-raised);padding:1px 5px;border-radius:3px;">chrome.storage.sync</code> API.
+      These settings are synced across your Chrome profile by Google.
+      We never access or transmit your settings.
+    </p>
+
+    <h3>Claim History</h3>
+    <p>
+      Your article history (titles, URLs, credibility scores, confidence distributions)
+      is stored locally in your browser using Chrome's
+      <code style="font-size:13px;color:var(--text);background:var(--surface-raised);padding:1px 5px;border-radius:3px;">chrome.storage.local</code> API.
+      This data never leaves your device and is never transmitted to our servers.
+    </p>
+
+    <h2>What We Do Not Collect</h2>
+    <ul>
+      <li>No names, email addresses, or contact information</li>
+      <li>No browsing history beyond the article you explicitly choose to analyze</li>
+      <li>No cookies or tracking pixels</li>
+      <li>No payment information</li>
+      <li>No location data</li>
+      <li>No device identifiers</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>
+      VeritasAI uses the following third-party services to power its
+      fact-checking pipeline:
+    </p>
+
+    <h3>Anthropic (Claude API)</h3>
+    <p>
+      Article text and extracted claims are sent to Anthropic's API for AI
+      processing. Anthropic's privacy policy applies to data processed through
+      their API. See: <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">anthropic.com/privacy</a>
+    </p>
+
+    <h3>Brave Search API</h3>
+    <p>
+      Claims are verified using Brave's Search API. Search queries are sent to
+      Brave's servers. Brave's privacy policy applies.
+      See: <a href="https://brave.com/privacy/search" target="_blank" rel="noopener">brave.com/privacy/search</a>
+    </p>
+
+    <p>No other third-party services receive your data.</p>
+
+    <h2>Data Retention</h2>
+
+    <div class="policy-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Storage Location</th>
+            <th>Retention</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Article text sent for analysis</td>
+            <td>Our server</td>
+            <td>Never stored — processed in memory only</td>
+          </tr>
+          <tr>
+            <td>Shared fact-check results</td>
+            <td>Our server</td>
+            <td>7 days, then automatically deleted</td>
+          </tr>
+          <tr>
+            <td>Anonymized analytics</td>
+            <td>Our server</td>
+            <td>Aggregated, no expiry</td>
+          </tr>
+          <tr>
+            <td>Extension settings</td>
+            <td>Your browser</td>
+            <td>Until you uninstall the extension</td>
+          </tr>
+          <tr>
+            <td>Article history</td>
+            <td>Your browser</td>
+            <td>Last 20 articles, stored locally</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Children's Privacy</h2>
+    <p>
+      VeritasAI is not directed at children under the age of 13 and does not
+      knowingly collect any information from children.
+    </p>
+
+    <h2>Changes to This Policy</h2>
+    <p>
+      We may update this privacy policy from time to time. Changes will be
+      reflected by the "Last updated" date at the top of this page. Continued
+      use of the extension after changes constitutes acceptance of the updated policy.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      If you have any questions about this privacy policy, please contact:<br>
+      <strong>Rian Chadha</strong><br>
+      <a href="mailto:rianchadha@gmail.com">rianchadha@gmail.com</a>
+    </p>
+
+  </div>
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    VeritasAI &nbsp;&middot;&nbsp; Built by Rian Chadha &nbsp;&middot;&nbsp;
+    <a href="mailto:rianchadha@gmail.com">rianchadha@gmail.com</a>
+  </div>
+  <div class="footer-right">
+    <a href="/privacypolicy">Privacy Policy</a>
+    <a href="#">Chrome Web Store &rarr;</a>
+  </div>
+</footer>
+
+</body>
+</html>
