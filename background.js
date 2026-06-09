@@ -5,5 +5,5 @@ chrome.sidePanel
   .catch((error) => console.error("Failed to set side panel behavior:", error));
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Veritas.ai installed.");
+  console.log("VeritasAI installed.");
 });

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Veritas.ai",
+  "name": "VeritasAI",
   "version": "0.1.0",
   "description": "Real-time AI fact-checking for news articles. Claim-by-claim verification with source diversity and political lean labels.",
   "icons": {
@@ -29,7 +29,7 @@
         "default": "Ctrl+Shift+F",
         "mac": "Command+Shift+F"
       },
-      "description": "Toggle Veritas.ai sidebar"
+      "description": "Toggle VeritasAI sidebar"
     }
   },
   "action": {
@@ -38,6 +38,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Open Veritas.ai"
+    "default_title": "Open VeritasAI"
   }
 }

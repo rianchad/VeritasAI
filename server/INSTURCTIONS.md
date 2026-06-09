@@ -1,4 +1,4 @@
-# Veritas.ai server
+# VeritasAI server
 
 Backend proxy that holds the Anthropic and Brave Search API keys and runs the
 claim-extraction / fact-checking pipeline. The extension never talks to Claude

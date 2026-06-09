@@ -1,4 +1,4 @@
-# Veritas.ai — CLAUDE.md
+# VeritasAI — CLAUDE.md
 
 Persistent context for Claude Code. Read this at the start of every session.
 
@@ -6,7 +6,7 @@ Persistent context for Claude Code. Read this at the start of every session.
 
 ## Project Overview
 
-**Veritas.ai** is a Chrome extension (Manifest V3) that performs real-time AI-powered fact-checking on news articles as users read them. It extracts discrete factual claims from article text, verifies them against primary sources and cross-outlet coverage, and surfaces confidence levels and alternative sources in a sidebar panel.
+**VeritasAI** is a Chrome extension (Manifest V3) that performs real-time AI-powered fact-checking on news articles as users read them. It extracts discrete factual claims from article text, verifies them against primary sources and cross-outlet coverage, and surfaces confidence levels and alternative sources in a sidebar panel.
 
 **Core design principle:** Never render a hard TRUE/FALSE verdict. Always show confidence levels + cited sources and let the user judge. This is both a UX and liability decision — critical for eventual B2B sale to a news network.
 

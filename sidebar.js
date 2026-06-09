@@ -1,6 +1,6 @@
 // Sidebar: wires up the UI states, pulls article text from the active tab's
 // content script, then streams claim extraction + fact-checking results from
-// the Veritas.ai backend (server/) via Server-Sent Events.
+// the VeritasAI backend (server/) via Server-Sent Events.
 
 const API_BASE_URL = "https://veritasai-production-2477.up.railway.app";
 // ---- DOM refs ---------------------------------------------------------------

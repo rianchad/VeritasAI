@@ -103,11 +103,13 @@ Also classify whether the piece reads as straight news reporting or opinion/edit
 
 For each claim, also provide a one-sentence context field that resolves any vague references — pronouns, demonstratives ("such services", "the measure", "this bill", "those cuts"), and shorthand — by substituting the specific referent found in the surrounding article text. If the claim is already fully self-contained, set context to be identical to the claim.
 
+CRITICAL — names of people: Never extract a surname alone (e.g. "Castro", "Smith", "Johnson"). Always use the full name as established in the article. If the article introduces the person with a title or role (e.g. "Senator", "CEO", "President"), include that identifier too (e.g. "Senator Bob Menendez (D-NJ)", "Fidel Castro, former Cuban leader"). This prevents confusing similarly named people during web search.
+
 Respond with ONLY a JSON object in this exact shape, no prose, no markdown fences:
 {
   "piece_type": "news" | "opinion" | "analysis",
   "claims": [
-    {"claim": "verbatim or lightly cleaned factual sentence from the article", "context": "same sentence with all vague references resolved to their specific referents"},
+    {"claim": "verbatim or lightly cleaned factual sentence from the article", "context": "same sentence with all vague references resolved to their specific referents, and all people identified by full name + role"},
     ...
   ]
 }
@@ -138,12 +140,60 @@ async function extractClaims(articleText, claimCount = 5) {
     };
   });
 
+  // Rewrite any claim that still contains an ambiguous surname before
+  // fact-checking begins, so search queries target the right person.
+  const disambiguated = await disambiguateEntities(articleText, normalised);
+
   return {
     pieceType: result.piece_type === "opinion" || result.piece_type === "analysis"
       ? result.piece_type
       : "news",
-    claims: normalised,
+    claims: disambiguated,
   };
+}
+
+// ---- Entity Disambiguation Pass --------------------------------------------
+// Runs once after claim extraction. Takes the full article text and the
+// extracted claims, and rewrites any claim where a person is identified only
+// by a surname (or an ambiguous short name) to include their full name, role,
+// and enough context for an unambiguous web search.
+
+const DISAMBIGUATION_PROMPT = (articleText, claims) =>
+  `You are helping prepare fact-checking search queries. Your only job is to rewrite claims that reference a person by surname alone or by an ambiguous short name, so that each person is identified unambiguously.
+
+For each claim and its context field, check whether any person is named only by surname (e.g. "Castro", "Johnson", "Lee") or by a short name that could match multiple well-known people. If so, rewrite both fields to use the person's full name and, where the article provides it, their role or affiliation (e.g. "Cuban leader Fidel Castro", "Senator Bob Menendez (D-NJ)", "Alejandro Castro Espín, son of Raúl Castro"). Use the article text below to resolve identities — do not guess.
+
+If a claim already contains a fully unambiguous identifier, return it unchanged.
+
+Article text (for identity resolution):
+"""
+${articleText.slice(0, 12000)}
+"""
+
+Claims to review (JSON array):
+${JSON.stringify(claims, null, 2)}
+
+Respond with ONLY a JSON array of the same length and shape as the input, with "claim" and "context" fields updated where needed. No prose, no markdown fences.`;
+
+async function disambiguateEntities(articleText, claims) {
+  try {
+    const rewritten = await askClaudeForJson(
+      DISAMBIGUATION_PROMPT(articleText, claims),
+      { maxTokens: 1500, retries: 1 }
+    );
+    if (!Array.isArray(rewritten) || rewritten.length !== claims.length) {
+      return claims; // shape mismatch — fall back to originals
+    }
+    return rewritten.map((item, i) => {
+      if (typeof item === "string") return claims[i]; // unexpected format
+      return {
+        claim: String(item.claim || claims[i].claim),
+        context: String(item.context || item.claim || claims[i].context),
+      };
+    });
+  } catch {
+    return claims; // never block the pipeline on this pass
+  }
 }
 
 // ---- Agents 2 & 3 merged: Verification + Divergence -------------------------

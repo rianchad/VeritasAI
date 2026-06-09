@@ -266,7 +266,7 @@ app.get("/share/:id", (req, res) => {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Veritas.ai — ${escHtml(articleTitle)}</title>
+<title>VeritasAI — ${escHtml(articleTitle)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -346,7 +346,7 @@ a:hover{color:var(--text)}
 <body>
 <div class="page">
   <header class="site-header">
-    <div class="site-header__wordmark">Veritas.ai</div>
+    <div class="site-header__wordmark">VeritasAI</div>
     <div class="site-header__tagline">Fact Intelligence</div>
   </header>
   <div class="header-rule"></div>
@@ -357,7 +357,7 @@ a:hover{color:var(--text)}
   </div>
   ${scoreBar}
   <ul class="claims-list">${claimsHtml}</ul>
-  <div class="site-footer">Veritas.ai surfaces sources and confidence levels — it never issues true/false verdicts.</div>
+  <div class="site-footer">VeritasAI surfaces sources and confidence levels — it never issues true/false verdicts.</div>
 </div>
 </body>
 </html>`;
@@ -368,5 +368,5 @@ a:hover{color:var(--text)}
 
 const port = process.env.PORT || 8787;
 app.listen(port, () => {
-  console.log(`Veritas.ai server listening on port ${port}`);
+  console.log(`VeritasAI server listening on port ${port}`);
 });

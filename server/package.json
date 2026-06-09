@@ -1,7 +1,7 @@
 {
   "name": "veritas-ai-server",
   "version": "0.1.0",
-  "description": "Backend proxy for Veritas.ai — holds API keys, runs the claim extraction and fact-checking pipeline.",
+  "description": "Backend proxy for VeritasAI — holds API keys, runs the claim extraction and fact-checking pipeline.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

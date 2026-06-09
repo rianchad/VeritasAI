@@ -1,8 +1,8 @@
-# 🔍 Veritas.ai
+# 🔍 VeritasAI
 
 > **Real-time AI fact-checking for news articles — right in your browser.**
 
-Veritas.ai is a Chrome extension that extracts discrete factual claims from the article you're reading, verifies each one against primary sources and cross-outlet coverage, and surfaces confidence levels and source diversity in a clean sidebar panel. It never issues a hard TRUE/FALSE verdict — it shows you the evidence and lets you judge.
+VeritasAI is a Chrome extension that extracts discrete factual claims from the article you're reading, verifies each one against primary sources and cross-outlet coverage, and surfaces confidence levels and source diversity in a clean sidebar panel. It never issues a hard TRUE/FALSE verdict — it shows you the evidence and lets you judge.
 
 ---
 
@@ -189,7 +189,7 @@ npm run dev   # or npm start for production
 ### 3. Use it
 
 1. Navigate to any news article
-2. Click the **Veritas.ai** icon in the Chrome toolbar to open the sidebar
+2. Click the **VeritasAI** icon in the Chrome toolbar to open the sidebar
 3. Click **Analyze this page**
 4. Results stream in claim by claim — expand any card for sources and divergence detail
 5. Highlight any sentence in the article and click **Fact-check this** in the popup to check it on demand
