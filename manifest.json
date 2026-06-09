@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Veritas.ai",
   "version": "0.1.0",
-  "description": "Real-time fact-checking for news articles. Extracts claims, verifies them against primary sources and cross-outlet coverage, and shows confidence levels — never hard verdicts.",
+  "description": "Real-time AI fact-checking for news articles. Claim-by-claim verification with source diversity and political lean labels.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

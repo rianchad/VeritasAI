@@ -643,7 +643,12 @@ function buildSourceList(label, sources) {
     if (isSourceStale(source)) item.classList.add("source-item--stale");
 
     const link = document.createElement("a");
-    link.href = source.url;
+    try {
+      const { protocol } = new URL(source.url || "");
+      link.href = (protocol === "http:" || protocol === "https:") ? source.url : "about:blank";
+    } catch {
+      link.href = "about:blank";
+    }
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = source.title || source.url;

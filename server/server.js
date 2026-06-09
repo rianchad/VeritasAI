@@ -182,13 +182,24 @@ app.get("/share/:id", (req, res) => {
       .replace(/"/g, "&quot;");
   }
 
+  // Allow only http/https in href attributes — javascript: and data: URLs
+  // survive escHtml() and execute as protocol handlers when clicked.
+  function safeUrl(url) {
+    try {
+      const { protocol } = new URL(String(url || ""));
+      return (protocol === "http:" || protocol === "https:") ? url : "about:blank";
+    } catch {
+      return "about:blank";
+    }
+  }
+
   function renderSources(label, sources) {
     if (!sources || sources.length === 0) return "";
     const items = sources.map((s) => {
       const metaParts = [s.outlet, s.lean, s.age].filter(Boolean).join(" · ");
       const titleHtml = s.title ? escHtml(s.title) : escHtml(s.url);
       const metaHtml = metaParts ? `<span class="source-meta">${escHtml(metaParts)}</span>` : "";
-      return `<li><a href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer">${titleHtml}</a>${metaHtml}</li>`;
+      return `<li><a href="${escHtml(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${titleHtml}</a>${metaHtml}</li>`;
     }).join("");
     return `<p class="section-heading">${escHtml(label)}</p><ul class="source-list">${items}</ul>`;
   }
@@ -341,7 +352,7 @@ a:hover{color:var(--text)}
   <div class="header-rule"></div>
   <div class="article-meta">
     <p class="article-meta__title">${escHtml(articleTitle)}</p>
-    <p class="article-meta__url"><a href="${escHtml(articleUrl)}" target="_blank" rel="noopener noreferrer">${escHtml(articleUrl)}</a></p>
+    <p class="article-meta__url"><a href="${escHtml(safeUrl(articleUrl))}" target="_blank" rel="noopener noreferrer">${escHtml(articleUrl)}</a></p>
     <p class="article-meta__expiry">Link expires ${escHtml(expiresDate)}</p>
   </div>
   ${scoreBar}
