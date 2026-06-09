@@ -2,7 +2,7 @@
 // content script, then streams claim extraction + fact-checking results from
 // the Veritas.ai backend (server/) via Server-Sent Events.
 
-const API_BASE_URL = "http://localhost:8787";
+const API_BASE_URL = "https://veritasai.railway.app";
 
 // ---- DOM refs ---------------------------------------------------------------
 
