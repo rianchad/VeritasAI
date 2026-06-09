@@ -66,6 +66,10 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/privacypolicy", (req, res) => {
+  res.sendFile(path.join(__dirname, "../landing/privacypolicy.html"));
+});
+
 // Fact-checks a single user-supplied claim (used by the text-selection flow).
 // Returns plain JSON rather than SSE since there's only one result.
 app.post("/api/check-claim", async (req, res) => {
