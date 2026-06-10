@@ -364,26 +364,25 @@
     }
 
     .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius);
-      padding: 36px 30px 32px;
+      background: #222222;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 24px;
       position: relative;
       overflow: hidden;
-      /* Starts invisible — JS adds .visible on scroll */
       opacity: 0;
       transform: translateY(22px);
       transition: opacity 0.55s ease, transform 0.55s ease, background 0.2s ease;
     }
 
-    /* Gold top-border accent */
+    /* Gold left-border accent — reveals on hover */
     .feature-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--gold);
-      opacity: 0.7;
+      top: 0; left: 0; bottom: 0;
+      width: 3px;
+      background: #C4973A;
+      opacity: 0;
       transition: opacity 0.2s ease;
     }
 
@@ -410,6 +409,16 @@
       color: var(--text);
       margin-bottom: 12px;
       line-height: 1.25;
+    }
+
+    .feature-glyph {
+      color: var(--gold);
+      margin-right: 7px;
+      font-style: normal;
+      font-size: 14px;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
     }
 
     .feature-desc {
@@ -447,32 +456,26 @@
     .how-steps::before {
       content: '';
       position: absolute;
-      top: 21px;
-      left: calc(12.5% + 6px);
-      right: calc(12.5% + 6px);
+      top: 38px;
+      left: calc(12.5% + 10px);
+      right: calc(12.5% + 10px);
       height: 1px;
       background: linear-gradient(to right, transparent, var(--gold-mid) 15%, var(--gold-mid) 85%, transparent);
       pointer-events: none;
     }
 
     .how-step {
-      padding: 0 28px;
+      padding: 0 20px;
       text-align: center;
     }
 
     .how-step-num {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: 1px solid var(--gold-mid);
-      background: var(--gold-dim);
-      color: var(--gold);
       font-family: var(--font-serif);
-      font-size: 17px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 22px;
+      font-size: 48px;
+      font-weight: 400;
+      color: #C4973A;
+      line-height: 1;
+      margin: 0 auto 16px;
       position: relative;
       z-index: 1;
     }
@@ -696,7 +699,7 @@
           <polyline points="14 2 14 8 20 8"/>
           <polyline points="9 15 11 17 15 13"/>
         </svg>
-        <p class="feature-title">Claim-by-claim verification</p>
+        <p class="feature-title"><span class="feature-glyph">✓</span>Claim-by-claim verification</p>
         <p class="feature-desc">
           Extracts 5–8 checkable claims and verifies each independently with
           statistics, quotes, attributions, stated events. Not a summary.
@@ -715,7 +718,7 @@
           <line x1="12" y1="9"  x2="12" y2="15" stroke-width="2"/>
           <circle cx="9" cy="12" r="2.2" fill="currentColor" stroke="none"/>
         </svg>
-        <p class="feature-title">Political lean labeling</p>
+        <p class="feature-title"><span class="feature-glyph">↔</span>Political lean labeling</p>
         <p class="feature-desc">
           Every source labeled Left to Right so you see where support comes
           from. Not just how many outlets agree, but whether they span the
@@ -734,7 +737,7 @@
           <line x1="7.2"  y1="12.9" x2="16.8" y2="17.6"/>
           <line x1="19"   y1="7.5"  x2="19"   y2="16.5"/>
         </svg>
-        <p class="feature-title">Coverage divergence</p>
+        <p class="feature-title"><span class="feature-glyph">⊕</span>Coverage divergence</p>
         <p class="feature-desc">
           CNN says X, Fox says Y, primary source says Z, all surfaced
           automatically. Identifies where outlets with different lean labels
@@ -751,7 +754,7 @@
           <rect x="17" y="4"  width="4" height="17" rx="1"/>
           <polyline points="3 7 9 4 15 7 21 3"/>
         </svg>
-        <p class="feature-title">Live credibility score</p>
+        <p class="feature-title"><span class="feature-glyph">◎</span>Live credibility score</p>
         <p class="feature-desc">
           A confidence bar updates in real time as each claim resolves — you see
           how an article holds up overall before all claims finish. Color-coded
@@ -768,7 +771,7 @@
           <polyline points="16.5 3.5 17.5 6.5"/>
           <polyline points="20.5 7.5 17.5 8.5"/>
         </svg>
-        <p class="feature-title">Breaking story detection</p>
+        <p class="feature-title"><span class="feature-glyph">⊙</span>Breaking story detection</p>
         <p class="feature-desc">
           Articles classified as Breaking, Developing, or Stable before
           fact-checking starts. Sources older than 12 hours on a breaking story
@@ -787,7 +790,7 @@
           <circle cx="19" cy="12" r="3"/>
           <line x1="21.2" y1="14.2" x2="23" y2="16"/>
         </svg>
-        <p class="feature-title">Highlight to fact-check</p>
+        <p class="feature-title"><span class="feature-glyph">✎</span>Highlight to fact-check</p>
         <p class="feature-desc">
           Select any sentence in the article and fact-check it on demand.
           Results appear at the top of the sidebar, verified with the same
@@ -878,6 +881,7 @@
     <a href="mailto:rianchadha@gmail.com">rianchadha@gmail.com</a>
   </div>
   <div class="footer-right">
+    <a href="/tos">Terms of Service</a>
     <a href="/privacypolicy">Privacy Policy</a>
     <!-- REPLACE: swap # with your Chrome Web Store URL once published -->
     <a href="#">Chrome Web Store &rarr;</a>
