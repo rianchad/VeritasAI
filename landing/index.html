@@ -375,6 +375,8 @@
     .feature-card.visible              { opacity: 1; transform: translateY(0); }
     .feature-card:nth-child(2)         { transition-delay: 0.10s; }
     .feature-card:nth-child(3)         { transition-delay: 0.20s; }
+    .feature-card:nth-child(5)         { transition-delay: 0.10s; }
+    .feature-card:nth-child(6)         { transition-delay: 0.20s; }
 
     .feature-icon {
       width: 34px;
@@ -395,6 +397,79 @@
 
     .feature-desc {
       font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ================================================================
+       HOW IT WORKS
+    ================================================================ */
+    .how-section {
+      padding: 72px 48px 88px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .how-inner { max-width: var(--max-w); margin: 0 auto; }
+
+    .how-heading {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 3.6vw, 42px);
+      font-weight: 400;
+      text-align: center;
+      margin-bottom: 64px;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      position: relative;
+    }
+
+    .how-steps::before {
+      content: '';
+      position: absolute;
+      top: 21px;
+      left: calc(12.5% + 6px);
+      right: calc(12.5% + 6px);
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold-mid) 15%, var(--gold-mid) 85%, transparent);
+      pointer-events: none;
+    }
+
+    .how-step {
+      padding: 0 28px;
+      text-align: center;
+    }
+
+    .how-step-num {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--gold-mid);
+      background: var(--gold-dim);
+      color: var(--gold);
+      font-family: var(--font-serif);
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .how-step-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .how-step-desc {
+      font-size: 13px;
       color: var(--text-muted);
       line-height: 1.7;
     }
@@ -480,9 +555,16 @@
         max-width: 520px;
         margin: 0 auto;
       }
-      /* Remove stagger on mobile — cards stack so delay looks broken */
       .feature-card:nth-child(2),
-      .feature-card:nth-child(3) { transition-delay: 0s; }
+      .feature-card:nth-child(3),
+      .feature-card:nth-child(5),
+      .feature-card:nth-child(6) { transition-delay: 0s; }
+
+      .how-steps {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 48px 0;
+      }
+      .how-steps::before { display: none; }
     }
 
     @media (max-width: 680px) {
@@ -490,9 +572,14 @@
       .hero              { padding: 72px 20px; min-height: auto; }
       .demo-section,
       .features-section,
+      .how-section,
       .trust-section     { padding: 60px 20px; }
       footer             { padding: 24px 20px; }
       .hero-scroll-hint  { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .how-steps { grid-template-columns: 1fr; gap: 40px 0; }
     }
 
     @media (max-width: 440px) {
@@ -635,6 +722,114 @@
           CNN says X, Fox says Y, primary source says Z, all surfaced
           automatically. Identifies where outlets with different lean labels
           specifically disagree, and why it matters.
+        </p>
+      </div>
+
+      <!-- Card 4: Credibility score -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="14" width="4" height="7" rx="1"/>
+          <rect x="10" y="9"  width="4" height="12" rx="1"/>
+          <rect x="17" y="4"  width="4" height="17" rx="1"/>
+          <polyline points="3 7 9 4 15 7 21 3"/>
+        </svg>
+        <p class="feature-title">Live credibility score</p>
+        <p class="feature-desc">
+          A confidence bar updates in real time as each claim resolves — you see
+          how an article holds up overall before all claims finish. Color-coded
+          green to orange based on the average across all checked claims.
+        </p>
+      </div>
+
+      <!-- Card 5: Volatility detection -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <polyline points="12 7 12 12 15 15"/>
+          <polyline points="16.5 3.5 17.5 6.5"/>
+          <polyline points="20.5 7.5 17.5 8.5"/>
+        </svg>
+        <p class="feature-title">Breaking story detection</p>
+        <p class="feature-desc">
+          Articles classified as Breaking, Developing, or Stable before
+          fact-checking starts. Sources older than 12 hours on a breaking story
+          trigger automatic confidence downgrades — stale evidence is never
+          treated the same as fresh reporting.
+        </p>
+      </div>
+
+      <!-- Card 6: Text selection -->
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6"  x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="14" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+          <circle cx="19" cy="12" r="3"/>
+          <line x1="21.2" y1="14.2" x2="23" y2="16"/>
+        </svg>
+        <p class="feature-title">Highlight to fact-check</p>
+        <p class="feature-desc">
+          Select any sentence in the article and fact-check it on demand.
+          Results appear at the top of the sidebar, verified with the same
+          rigor, lean labeling, and primary-source ranking as the full pipeline.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     HOW IT WORKS
+================================================================ -->
+<div class="how-section">
+  <div class="how-inner">
+
+    <span class="section-eyebrow">Under the hood</span>
+    <h2 class="how-heading">From article to answer in seconds</h2>
+
+    <div class="how-steps">
+
+      <div class="how-step">
+        <div class="how-step-num">1</div>
+        <p class="how-step-title">Article is loaded</p>
+        <p class="how-step-desc">
+          Open any news article and click the VeritasAI icon. The extension
+          extracts the article body and sends it to the pipeline.
+        </p>
+      </div>
+
+      <div class="how-step">
+        <div class="how-step-num">2</div>
+        <p class="how-step-title">Claims are extracted</p>
+        <p class="how-step-desc">
+          An AI agent identifies 5–8 discrete, checkable factual claims —
+          statistics, quotes, attributions, stated events. No summaries,
+          no sentiment.
+        </p>
+      </div>
+
+      <div class="how-step">
+        <div class="how-step-num">3</div>
+        <p class="how-step-title">Parallel verification</p>
+        <p class="how-step-desc">
+          Each claim is independently searched against live web results.
+          Sources are lean-labeled, primary sources separated, and a synthesis
+          agent weighs the evidence.
+        </p>
+      </div>
+
+      <div class="how-step">
+        <div class="how-step-num">4</div>
+        <p class="how-step-title">Results stream in</p>
+        <p class="how-step-desc">
+          Confidence levels, source cards, and divergence summaries arrive
+          claim by claim — no waiting for the full analysis to finish before
+          you see the first result.
         </p>
       </div>
 
