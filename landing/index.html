@@ -201,6 +201,23 @@
       color: var(--gold);
     }
 
+    #hero-typewriter {
+      color: var(--gold);
+    }
+
+    .hero-cursor {
+      display: inline-block;
+      color: var(--gold);
+      font-weight: 300;
+      margin-left: 2px;
+      animation: cursor-blink 1s step-end infinite;
+    }
+
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
     .hero-sub {
       font-size: clamp(15px, 1.9vw, 18px);
       color: var(--text-muted);
@@ -475,6 +492,50 @@
     }
 
     /* ================================================================
+       SCREENSHOTS
+    ================================================================ */
+    .screenshots-section {
+      padding: 72px 48px 88px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .screenshots-inner { max-width: var(--max-w); margin: 0 auto; }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .screenshot-img-wrap {
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid #2a2a2a;
+      background: var(--surface);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      line-height: 0;
+    }
+
+    .screenshot-img-wrap:hover {
+      transform: scale(1.02);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .screenshot-img-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .screenshot-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      margin-top: 10px;
+    }
+
+    /* ================================================================
        TRUST LINE
     ================================================================ */
     .trust-section {
@@ -573,7 +634,9 @@
       .demo-section,
       .features-section,
       .how-section,
+      .screenshots-section,
       .trust-section     { padding: 60px 20px; }
+      .screenshots-grid  { grid-template-columns: 1fr; }
       footer             { padding: 24px 20px; }
       .hero-scroll-hint  { display: none; }
     }
@@ -609,7 +672,7 @@
 
     <span class="hero-eyebrow">Chrome Extension &nbsp;&middot;&nbsp; Powered by AI</span>
 
-    <h1>Real-time AI fact-checking<br>for <em>news articles</em></h1>
+    <h1>Real-time fact-checking<br>for <span id="hero-typewriter"></span><span class="hero-cursor" aria-hidden="true">|</span></h1>
 
     <p class="hero-sub">
       VeritasAI extracts discrete factual claims from any article you're reading,
@@ -839,6 +902,49 @@
 
 
 <!-- ================================================================
+     SCREENSHOTS
+================================================================ -->
+<div class="screenshots-section">
+  <div class="screenshots-inner">
+
+    <span class="section-eyebrow">See it in action</span>
+
+    <div class="screenshots-grid">
+
+      <div class="screenshot-item">
+        <div class="screenshot-img-wrap">
+          <img src="images/screenshot1.png" alt="Real-time fact checking on Fox News" loading="lazy">
+        </div>
+        <p class="screenshot-label">Real-time fact checking on Fox News</p>
+      </div>
+
+      <div class="screenshot-item">
+        <div class="screenshot-img-wrap">
+          <img src="images/screenshot2.png" alt="Political lean labeling across sources" loading="lazy">
+        </div>
+        <p class="screenshot-label">Political lean labeling across sources</p>
+      </div>
+
+      <div class="screenshot-item">
+        <div class="screenshot-img-wrap">
+          <img src="images/screenshot3.png" alt="Bias blindspot detector" loading="lazy">
+        </div>
+        <p class="screenshot-label">Bias blindspot detector</p>
+      </div>
+
+      <div class="screenshot-item">
+        <div class="screenshot-img-wrap">
+          <img src="images/screenshot4.png" alt="Shareable fact-check links" loading="lazy">
+        </div>
+        <p class="screenshot-label">Shareable fact-check links</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
      TRUST LINE
 ================================================================ -->
 <div class="trust-section">
@@ -887,6 +993,58 @@
   document.querySelectorAll('.feature-card, .trust-line').forEach((el) => {
     observer.observe(el);
   });
+
+  // Typewriter effect — cycles the hero headline ending
+  (function () {
+    const phrases = [
+      'news articles',
+      'breaking news',
+      'critical thinkers',
+      'media coverage',
+      'informed citizens',
+      'skeptical readers',
+      'every news site',
+      'online journalism',
+      'the open web',
+      "news you don't trust",
+    ];
+
+    const el = document.getElementById('hero-typewriter');
+    const DISPLAY_MS  = 2500;
+    const TYPE_MS     = 60;
+    const DELETE_MS   = 30;
+
+    let phraseIdx = 0;
+    let charIdx   = 0;
+    let deleting  = false;
+
+    function tick() {
+      const phrase = phrases[phraseIdx];
+
+      if (!deleting) {
+        charIdx++;
+        el.textContent = phrase.slice(0, charIdx);
+        if (charIdx === phrase.length) {
+          deleting = true;
+          setTimeout(tick, DISPLAY_MS);
+          return;
+        }
+        setTimeout(tick, TYPE_MS);
+      } else {
+        charIdx--;
+        el.textContent = phrase.slice(0, charIdx);
+        if (charIdx === 0) {
+          deleting  = false;
+          phraseIdx = (phraseIdx + 1) % phrases.length;
+          setTimeout(tick, TYPE_MS);
+          return;
+        }
+        setTimeout(tick, DELETE_MS);
+      }
+    }
+
+    tick();
+  }());
 </script>
 
 </body>
