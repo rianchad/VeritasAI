@@ -148,53 +148,6 @@ veritas-ai/
     └── package.json
 ```
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+
-- A [Brave Search API](https://brave.com/search/api/) key (free tier works)
-- An [Anthropic API](https://console.anthropic.com/) key
-
-### 1. Start the backend server
-
-```bash
-cd server
-npm install
-```
-
-Create `server/.env`:
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-BRAVE_SEARCH_API_KEY=BSA...
-ALLOWED_ORIGINS=chrome-extension://YOUR_EXTENSION_ID
-PORT=8787
-
-# Base URL for shareable links — set to your deployed domain in production
-PUBLIC_URL=https://your-deployed-domain.com
-```
-
-```bash
-npm run dev   # or npm start for production
-```
-
-### 2. Load the Chrome extension
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked** and select the root `veritas-ai/` folder
-4. Copy the extension ID shown on the card and paste it into `ALLOWED_ORIGINS` in your `.env`, then restart the server
-
-### 3. Use it
-
-1. Navigate to any news article
-2. Click the **VeritasAI** icon in the Chrome toolbar to open the sidebar
-3. Click **Analyze this page**
-4. Results stream in claim by claim — expand any card for sources and divergence detail
-5. Highlight any sentence in the article and click **Fact-check this** in the popup to check it on demand
-
----
 
 ## 🎨 UI Reference
 
