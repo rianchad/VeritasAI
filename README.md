@@ -1,4 +1,5 @@
 # 🔍 VeritasAI
+## NOW AVAILABLE ON [THE CHROME WEBSTORE](https://chromewebstore.google.com/detail/veritasai/meihgjpilbhddfjoloampanbgmbmmnjj)
 
 > **Real-time AI fact-checking for news articles — right in your browser.**
 
