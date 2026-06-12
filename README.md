@@ -1,177 +1,155 @@
-# 🔍 VeritasAI
-## NOW AVAILABLE ON [THE CHROME WEBSTORE](https://chromewebstore.google.com/detail/veritasai/meihgjpilbhddfjoloampanbgmbmmnjj)
+# VeritasAI
 
-> **Real-time AI fact-checking for news articles — right in your browser.**
+A Chrome extension that fact-checks the news article you're reading — in real time, without telling you what to think.
 
-VeritasAI is a Chrome extension that extracts discrete factual claims from the article you're reading, verifies each one against primary sources and cross-outlet coverage, and surfaces confidence levels and source diversity in a clean sidebar panel. It never issues a hard TRUE/FALSE verdict — it shows you the evidence and lets you judge.
-
----
-
-## ✨ Features
-
-### 🧠 AI-Powered Claim Extraction
-- Automatically identifies **5–8 discrete, checkable factual claims** from any news article — statistics, quotes, attributions, stated events
-- Skips vague assertions and opinion language; focuses on what's actually verifiable
-- Classifies the piece as **News**, **Opinion/Editorial**, or **Analysis/Commentary** and flags non-news pieces with a banner at the top of the sidebar
-
-### ✅ Per-Claim Fact-Checking
-- Each claim is independently verified against **real web search results** (Brave Search API)
-- A synthesis agent weighs source quality, cross-references multiple outlets, and returns a structured confidence assessment
-- **Confidence levels:** `High` · `Medium` · `Low` — with a one-sentence rationale explaining the score
-- Strict confidence thresholds: `High` requires 3+ independent sources or a direct primary source confirmation with no credible contradictions
-
-### 🏛️ Primary Source Priority
-- **Primary sources** (`.gov` data, AP/Reuters wire dispatches, `.edu` research, WHO/UN/World Bank, SEC filings, court records) are identified and surfaced separately from media coverage
-- Media outlets — even highly reputable ones — are never miscategorized as primary sources
-
-### 🌐 Political Lean Labeling
-- Every source card shows the outlet's political lean label: `Left` · `Lean Left` · `Center` · `Lean Right` · `Right`
-- Ratings derived from AllSides and Ad Fontes Media public data, covering 100+ outlets
-- Designed to show **spectrum diversity** across claims — the goal is to surface disagreement, not to editorialize
-
-### 📊 Coverage Divergence Analysis
-- For each claim, a divergence agent identifies **where outlets with different lean labels specifically disagree** — not just "they disagree," but "CNN says X, Fox says Y, Primary source says Z"
-- Outlet positions are listed individually when notable divergence is detected
-
-### ⚡ Volatility Classification & Recency Weighting
-- Before fact-checking begins, the article is classified as **Breaking**, **Developing**, or **Stable** based on the headline and opening paragraphs
-- **Breaking/Developing stories** show a prominent banner: *"This is a rapidly developing story — some sources may be outdated"*
-- Sources older than **12 hours** in a breaking story trigger a **confidence downgrade** (one notch), with an explanation appended to the rationale
-- Every source card shows a **relative timestamp** (e.g., `5 hours ago`, `2 days ago`) pulled from the search API
-- Sources older than **24 hours** in a breaking or developing story receive a **subtle muted treaFatment** so stale sources are visually distinguishable at a glance
-- Recency adjustment is skipped when publication dates are unavailable — unknown freshness is never penalized
-
-### 🖊️ Text Selection Fact-Checking
-- Highlight any sentence in the article and a popup appears in the sidebar offering to **fact-check that specific text**
-- The selected claim is checked in isolation and inserted at the top of the claims list
-- The current article's volatility classification is applied to selection-based checks automatically
-
-### 🔦 Claim-to-Article Highlighting
-- Hover over any claim card to **highlight the matching paragraph** in the article page
-- Uses keyword-overlap scoring to find the best-matching paragraph; scrolls it into view if needed
-
-### 📊 Article-Level Credibility Score
-- After the first claim resolves, a **live credibility bar** appears at the top of the results panel — it updates in real time as each claim streams in, not after all claims finish
-- Formula: `High = 1.0`, `Medium = 0.5`, `Low = 0.0` — averaged across all resolved claims, displayed as a percentage bar with a color-coded fill (`green / yellow / orange`)
-- Summary text shows how many claims have resolved so far (e.g., `3 of 7 claims resolved · 67% avg confidence`) and finalizes when all claims are done
-- Claims that error out are excluded from the average so a single failed search doesn't drag the score down
-
-### ⚠️ Bias Blindspot Detector
-- After sources are lean-labeled, each claim card checks whether **all supporting sources share the same political lean**
-- If 3 or more supporting sources are all Left/Lean Left — or all Right/Lean Right — a warning surfaces on the card: *"Warning: all supporting sources are [Left/Right]-leaning — no opposing perspective found."*
-- The 3-source threshold prevents false positives on single-source claims
-- `Center` and `Unrated` sources are excluded from the check — a claim supported by Center sources won't trigger the warning
-- Fires automatically for both full-article pipeline results and text-selection fact-checks
-
-### 🔗 Shareable Fact-Check Links
-- After analysis completes, a **"Copy share link"** button appears at the bottom of the results panel
-- Clicking it POSTs the full results to the backend, generates a unique ID, and copies the link to your clipboard
-- The link renders a **read-only fact-check page** served by the Express backend — no extension required to view it
-- The shared page shows the credibility score, all claim cards with confidence badges, source lists, bias blindspot warnings, and divergence summaries — everything the sidebar shows, in a clean standalone page
-- Text-selection claims (fact-checked on demand by highlighting) are included in the shared results alongside pipeline claims
-- Shared results are **persisted to disk** (`server/shares.json`) so links survive server restarts
-- Links **expire after 7 days**; expired links return a clear 410 page rather than a silent 404
-- Set `PUBLIC_URL` in `server/.env` to your deployed domain so links point to the right host in production
-
-### 📡 Streaming Results
-- Results stream into the sidebar as each claim finishes — you don't wait for all claims to complete before seeing the first result
-- A **live progress bar** tracks how many claims have been checked
-- The sidebar transitions through `Idle → Loading → Streaming → Done` states with clear messaging at each step
-
-### 🔖 Citation Needed Flag
-- When a claim returns **zero supporting sources and zero primary sources** after the full fact-check, a distinct **"No sources found"** badge replaces the standard Low confidence badge
-- Tooltip: *"This claim may be unverifiable or newly reported."*
-- The confidence value stays `Low` — the flag is additive, not a replacement, so the credibility score and history entries are unaffected
-- Triggers on genuine source absence only; claims where search found results but Claude found none relevant enough to cite are treated the same way
-
-### 🛡️ Edge Case Handling
-- **Paywalled articles:** fact-checks the visible text only; no errors thrown on partial content
-- **Opinion/editorial pieces:** flagged prominently; rationale notes when a claim is the author's argument rather than an established fact
-- **No search results:** returns `Low` confidence with a `citation_needed` flag rather than silently failing
-- **Contradiction sanity checks:** time zone differences, unit differences, and rounding differences are not treated as contradictions
+![VeritasAI sidebar showing fact-check results](landing/images/screenshot1_new.png)
 
 ---
 
-## 🏗️ Architecture
-
-```
-Article page load
-  └── content.js extracts article body text + title
-        └── sends to sidebar.js
-
-sidebar.js → POST /api/analyze (articleText + articleTitle)
-
-  Server pipeline:
-  ├── [1] Volatility Classifier       — headline + first 600 chars → "breaking" | "developing" | "stable"
-  │         SSE event: "volatility"
-  │
-  ├── [2] Claim Extractor             — full article text → 5–8 claims + piece type
-  │         SSE event: "claims"
-  │
-  └── [3] Per-claim (parallel):
-        ├── Brave Search              — 8 results per claim
-        ├── Source Annotator          — lean labels, primary-source flags, timestamps
-        ├── Fact-Check Synthesizer    — confidence, supporting/contradicting/primary sources, divergence
-        └── Recency Adjuster          — downgrades confidence if newest source > 10h old on breaking story
-              SSE event: "claim_result"
-```
-
-**Tech stack:**
-| Layer | Technology |
-|---|---|
-| Extension runtime | Chrome Manifest V3 |
-| Extension language | Vanilla JavaScript (no framework) |
-| AI | Claude API (`claude-sonnet-4-20250514`) via `@anthropic-ai/sdk` |
-| Web search | Brave Search API |
-| Source bias data | AllSides / Ad Fontes Media (static lookup table) |
-| Backend | Node.js + Express |
-| Streaming | Server-Sent Events (SSE) |
+**[Try it on the Chrome Web Store](https://chromewebstore.google.com/detail/veritasai/meihgjpilbhddfjoloampanbgmbmmnjj)**
 
 ---
 
-## 📁 File Structure
+## Features
 
-```
-veritas-ai/
-├── manifest.json        # Chrome MV3 manifest
-├── background.js        # Service worker — opens the side panel on toolbar click
-├── content.js           # Injected into article pages; extracts text, handles highlights, reports selections
-├── sidebar.html         # Sidebar panel markup
-├── sidebar.js           # Sidebar logic — SSE client, state machine, all UI rendering
-├── sidebar.css          # Sidebar styles
-├── icons/               # Extension icons (16px, 48px, 128px)
-└── server/
-    ├── server.js        # Express routes: /api/analyze (SSE), /api/check-claim (JSON), /api/share + /share/:id
-    ├── pipeline.js      # AI pipeline: volatility classifier, claim extractor, fact-checker, recency adjuster
-    ├── search.js        # Brave Search API wrapper
-    ├── sourceLean.js    # Outlet → political lean + primary source lookup tables
-    ├── shares.json      # Auto-created; stores shared fact-check results (7-day TTL, file-backed)
-    └── package.json
-```
+### Claim Extraction
 
+VeritasAI reads the article text and pulls out 5-8 discrete, checkable factual claims — statistics, attributed quotes, stated events, specific numbers. It skips vague assertions and opinion language. "The unemployment rate rose to 4.2% in September" is a claim. "Republicans have failed to address the crisis" is not.
 
-## 🎨 UI Reference
+Before extraction runs, the article gets classified as News, Opinion/Editorial, or Analysis/Commentary. Opinion and analysis pieces get a banner at the top of the sidebar so you know what you're reading before the claims load.
 
-| Element | Meaning |
-|---|---|
-| 🟢 `High confidence` badge | 3+ independent sources confirm, or a primary source directly confirms, with no credible contradiction |
-| 🟡 `Medium confidence` badge | Some support but gaps remain — indirect evidence, mixed signals, or one credible contradiction |
-| 🟠 `Low confidence` badge | No sources confirm, active contradictions, or results don't address the claim |
-| 🟤 `No sources found` badge | Zero supporting and zero primary sources returned — claim may be unverifiable or newly reported |
-| Credibility score bar | Live average across all resolved claims — green ≥75%, yellow ≥40%, orange below |
-| ⚠️ Bias blindspot warning | All 3+ supporting sources share the same political lean — no opposing perspective found |
-| ⚡ Breaking/Developing banner | Volatility classifier flagged this as an actively developing story |
-| ⚠️ Opinion/Analysis banner | Piece is editorial or commentary — claims may reflect the author's viewpoint |
-| Muted source card | Source is older than 24 hours in a breaking or developing story |
-| `5 hours ago` timestamp | Relative age of the source's crawl timestamp from Brave Search |
-| Copy share link button | Appears after analysis completes; generates a 7-day shareable link to a read-only results page |
+### Per-Claim Verification
+
+Each claim runs through an agentic verification loop backed by live Brave Search results. The agent decides what to search for, reads the results, and decides whether it has enough evidence or needs to refine the query and search again. It loops up to 3 times per claim.
+
+Confidence levels come out as High, Medium, or Low, each with a one-sentence rationale:
+
+- **High** — 3 or more independent sources confirm the claim, or a primary source directly confirms it with no credible contradictions
+- **Medium** — partial support, indirect evidence, mixed signals, or one credible contradiction in the results
+- **Low** — no sources confirm the claim, active contradictions found, or search results don't address it at all
+
+Claims that return zero supporting sources and zero primary sources get a distinct "No sources found" badge rather than a plain Low confidence label. The tooltip reads: "This claim may be unverifiable or newly reported."
+
+### Primary Source Priority
+
+Government data, AP and Reuters wire dispatches, academic studies, court records, WHO, UN, World Bank reports, and SEC filings are identified and surfaced separately from media coverage. They appear in their own section on each claim card, above the list of news sources.
+
+Media outlets — even highly reputable ones — are never categorized as primary sources. A Reuters article about a BLS report and the BLS report itself are different things, and the sidebar treats them differently.
+
+### Political Lean Labels
+
+Every source card shows the outlet's political lean: Left, Lean Left, Center, Lean Right, or Right. Ratings come from Ad Fontes Media and AllSides public data, covering 100+ outlets.
+
+The labels aren't there to editorialize. They're there so you can see whether support for a claim comes from across the spectrum or from one side of it. A claim confirmed by outlets across the full lean range reads differently than one where all the supporting sources share the same label.
+
+### Divergence Analysis
+
+A second agent runs in parallel with the verification agent for each claim. It finds how outlets with different political leans cover the same underlying fact and extracts their specific framing. The output isn't "they disagree" — it's "CNN says X, Fox says Y, primary BLS data says Z."
+
+Outlet positions are listed individually when notable divergence exists. When outlets are citing the same underlying statistic and framing it in meaningfully different directions, that shows up clearly.
+
+### Bias Blindspot Detection
+
+After sources get lean-labeled, each claim card checks whether all the supporting sources share the same political lean. If 3 or more supporting sources are all Left/Lean Left, or all Right/Lean Right, a warning surfaces on the card: "Warning: all supporting sources are [Left/Right]-leaning — no opposing perspective found."
+
+The 3-source threshold prevents false positives on claims that only returned one or two results. Center and Unrated sources are excluded from the check — a claim supported entirely by center-rated outlets won't trigger it.
+
+### Volatility Classification
+
+Before fact-checking starts, the article headline and opening paragraphs get classified as Breaking, Developing, or Stable.
+
+Breaking and Developing stories show a banner at the top of the sidebar. Sources older than 12 hours in a breaking story trigger a confidence downgrade — one notch down from whatever the agent scored — with an explanation added to the rationale. Sources older than 24 hours in a breaking or developing story are visually muted on the card so stale sources are distinguishable at a glance.
+
+Every source card shows a relative timestamp (5 hours ago, 2 days ago) pulled from the search API. When publication dates aren't available, recency adjustments are skipped entirely — unknown freshness is never penalized.
+
+### Text Selection Fact-Checking
+
+Highlight any sentence in the article and a popup appears in the sidebar offering to fact-check that specific text. The selected claim runs through the same verification pipeline in isolation and gets inserted at the top of the claims list. The article's current volatility classification applies automatically.
+
+### Claim Highlighting
+
+Hover over any claim card in the sidebar and the matching paragraph in the article highlights on the page. It uses keyword-overlap scoring to find the best-matching paragraph and scrolls it into view if needed.
+
+### Article Credibility Score
+
+After the first claim resolves, a live credibility bar appears at the top of the results panel. It updates in real time as each claim streams in — not after all claims finish. The formula: High = 1.0, Medium = 0.5, Low = 0.0, averaged across all resolved claims, shown as a percentage bar with a color-coded fill. Green at 75%+, yellow at 40%+, orange below that.
+
+Summary text shows how many claims have resolved so far (e.g., "3 of 7 claims resolved · 67% avg confidence") and finalizes when everything is done. Claims that error out are excluded from the average.
+
+### Streaming Results
+
+Claims stream into the sidebar as each one finishes. The first result appears within a few seconds of opening the sidebar. A progress bar tracks how many claims have been checked. The sidebar moves through Idle, Loading, Streaming, and Done states with clear messaging at each step.
+
+### Shareable Fact-Check Links
+
+After analysis completes, a "Copy share link" button appears at the bottom of the results panel. Clicking it generates a unique link to a read-only fact-check page — no extension required to view it. The page shows the credibility score, all claim cards with confidence badges, source lists, bias blindspot warnings, and divergence summaries.
+
+Links expire after 7 days. Expired links return a clear expiration page rather than a silent 404.
+
+### Edge Case Handling
+
+- **Paywalled articles** — fact-checks the visible text only; no errors thrown on partial content
+- **Opinion and editorial pieces** — flagged prominently at the top of the sidebar; the rationale notes when a claim reflects the author's argument rather than an established fact
+- **Contradictions** — time zone differences, unit differences, and rounding differences are not treated as contradictions
+- **Empty search results** — returns Low confidence with a citation_needed flag rather than silently failing
 
 ---
 
-## 🔑 Design Principles
+## How It Works
 
-- **No hard verdicts.** Confidence levels + cited sources, always. The reader decides.
-- **Primary sources first.** Government data, wire dispatches, and academic sources are surfaced above media coverage.
-- **Spectrum diversity.** Lean labels are shown so readers can see whether support comes from one side of the political spectrum or many.
-- **Fail gracefully.** Paywalls, missing dates, empty search results, and API errors all have defined fallback states — nothing silently breaks.
-- **Latency budget*.** The volatility classifier and claim extractor are sequential (~2s combined); per-claim fact-checks run in parallel and stream as they finish.
+VeritasAI runs an agentic pipeline on a Node.js/Express backend. Two agents run concurrently per claim over Server-Sent Events: a verification agent that loops through Brave Search queries until it finds sufficient evidence, and a divergence agent that fetches coverage from outlets across the political lean spectrum and extracts their specific framing. Results stream back to the sidebar as each claim resolves.
+
+The no-verdict design is intentional. Hard TRUE/FALSE labels on politically sensitive claims create liability and put the tool in the position of arbiter. Confidence levels plus cited sources puts the reader in that position instead, which is where it belongs.
+
+```mermaid
+flowchart LR
+    classDef ext fill:#7c3aed,stroke:#a78bfa,color:#fff
+    classDef srv fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef api fill:#b45309,stroke:#fcd34d,color:#fff
+
+    subgraph chrome["🧩 Chrome Extension"]
+        direction TB
+        content(["content.js\nextract article"]):::ext
+        sidebar(["sidebar.js\nrender results"]):::ext
+    end
+
+    subgraph backend["⚙️ Express Backend"]
+        direction TB
+        vol(["① Volatility\nClassifier"]):::srv
+        ext(["② Claim\nExtractor"]):::srv
+
+        subgraph par["③ Per Claim — Parallel"]
+            direction LR
+            verify(["Verification\nAgent"]):::srv
+            diverge(["Divergence\nAgent"]):::srv
+        end
+
+        sse(["SSE\nStream"]):::srv
+    end
+
+    subgraph apis["🌐 External APIs"]
+        direction TB
+        claude[["Claude API"]]:::api
+        brave[["Brave Search"]]:::api
+    end
+
+    content -->|article text| sidebar
+    sidebar -->|POST /api/analyze| vol
+    vol --> ext
+    ext --> verify
+    ext --> diverge
+    verify --> sse
+    diverge --> sse
+    sse -->|streams claim results| sidebar
+
+    backend -->|AI inference| claude
+    backend -->|web search| brave
+```
+
+---
+
+## Credits
+
+- AI: [Anthropic Claude](https://anthropic.com) (`claude-sonnet-4-20250514`)
+- Web search: [Brave Search API](https://brave.com/search/api/)
+- Source bias ratings: [Ad Fontes Media](https://adfontesmedia.com) and [AllSides](https://allsides.com)

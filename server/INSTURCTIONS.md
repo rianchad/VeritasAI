@@ -58,3 +58,4 @@ at it by setting `API_BASE_URL` in [`sidebar.js`](../sidebar.js).
   search results) rather than the fully agentic multi-loop version described
   in the project's `CLAUDE.md`; that can be layered in later without changing
   the server's HTTP surface.
+v4
