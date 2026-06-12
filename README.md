@@ -160,6 +160,20 @@ flowchart TD
 
 ---
 
+## Permissions
+
+| Permission | Why |
+|------------|-----|
+| `activeTab` | Reads the URL and title of the tab you're currently on so the extension knows which article to analyze |
+| `scripting` | Injects `content.js` into the page to extract the article body text |
+| `sidePanel` | Opens the fact-check results in Chrome's native side panel |
+| `storage` | Saves your API key and preferences locally so you don't have to re-enter them |
+| `host_permissions: <all_urls>` | Allows `content.js` to run on any news site, not just a hardcoded list |
+
+VeritasAI does not collect, transmit, or store your browsing history. The only data that leaves your browser is the article text sent to the backend for analysis.
+
+---
+
 ## Credits
 
 - AI: [Anthropic Claude](https://anthropic.com) (`claude-sonnet-4-20250514`)
