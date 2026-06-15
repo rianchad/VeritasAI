@@ -1,10 +1,3 @@
-// Injected into article pages. Responsibilities:
-//   1. Extract article text on demand (GET_ARTICLE)
-//   2. Match claims to paragraphs and highlight them on hover (HIGHLIGHT_CLAIM / CLEAR_HIGHLIGHT)
-//   3. Detect user text selections and report them to the sidebar (TEXT_SELECTED)
-
-// ---- Article extraction -----------------------------------------------------
-
 function collectParagraphText(root) {
   const paragraphs = root.querySelectorAll("p");
   return Array.from(paragraphs)
