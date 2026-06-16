@@ -13,7 +13,7 @@ const Anthropic = require("@anthropic-ai/sdk");
 const { searchWeb } = require("./search");
 const { getDomain, getLean, isPrimarySource } = require("./sourceLean");
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-haiku-4-5-20251001";
 
 let anthropicClient = null;
 function client() {
@@ -260,7 +260,6 @@ Additional rules:
 - Keep "outlet_positions" to at most 4 entries, prioritizing outlets with different "lean" labels.
 - PRIMARY SOURCES are government data (.gov sites), official wire service dispatches (AP/Reuters), peer-reviewed academic sources (.edu, academic journals), official government transcripts, and intergovernmental bodies (UN, WHO, World Bank). Reliable media outlets such as BBC, NPR, CNN, or The Guardian do NOT qualify as primary sources regardless of their reputation — list those under supporting_sources instead.`;
 
-// 10h threshold (12h spec minus ±2h tolerance for crawl-time lag).
 const RECENCY_THRESHOLD_MS = 10 * 60 * 60 * 1000;
 const CONFIDENCE_ORDER = ["high", "medium", "low"];
 

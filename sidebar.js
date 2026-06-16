@@ -22,17 +22,9 @@ const credibilitySummaryEl = document.getElementById("credibility-score__summary
 const shareRowEl = document.getElementById("share-row");
 const shareBtnEl = document.getElementById("share-btn");
 const shareToastEl = document.getElementById("share-toast");
-const exportPdfBtnEl = document.getElementById("export-pdf-btn");
 
 const selectionPopup = document.getElementById("selection-popup");
-const selectionPreview = document.getElementById("selection-preview");
-const selectionCheckBtn = document.getElementById("selection-check-btn");
-const selectionDismissBtn = document.getElementById("selection-dismiss-btn");
 
-const gearBtnEl = document.getElementById("header-gear-btn");
-const historyBtnEl = document.getElementById("header-history-btn");
-const settingsBackBtn = document.getElementById("settings-back-btn");
-const historyBackBtn = document.getElementById("history-back-btn");
 const settingsContentEl = document.getElementById("settings-content");
 const historyContentEl = document.getElementById("history-content");
 
@@ -824,7 +816,7 @@ function pinMostDisputed() {
 function showSelectionPopup(text) {
   pendingSelectionText = text;
   const preview = text.length > 140 ? text.slice(0, 140) + "…" : text;
-  selectionPreview.textContent = `"${preview}"`;
+  document.getElementById("selection-preview").textContent = `"${preview}"`;
   selectionPopup.classList.remove("hidden");
 }
 
@@ -865,13 +857,13 @@ async function checkSingleClaim(claimText) {
   }
 }
 
-selectionCheckBtn.addEventListener("click", () => {
+document.getElementById("selection-check-btn").addEventListener("click", () => {
   const text = pendingSelectionText;
   hideSelectionPopup();
   if (text) checkSingleClaim(text);
 });
 
-selectionDismissBtn.addEventListener("click", hideSelectionPopup);
+document.getElementById("selection-dismiss-btn").addEventListener("click", hideSelectionPopup);
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "TEXT_SELECTED") showSelectionPopup(message.text);
@@ -910,13 +902,12 @@ shareBtnEl.addEventListener("click", async () => {
   }
 });
 
-// ---- Export PDF (Feature 6) -------------------------------------------------
-
-exportPdfBtnEl.addEventListener("click", () => {
+// export PDF
+document.getElementById("export-pdf-btn").addEventListener("click", () => {
   window.print();
 });
 
-// ---- Settings view (Feature 1 + 2) -----------------------------------------
+// settings panel
 
 function makeToggleRow(labelText, checked, onChange) {
   const row = document.createElement("div");
@@ -956,16 +947,6 @@ function makeSelectRow(labelText, options, value, onChange) {
   select.addEventListener("change", () => onChange(select.value));
   row.append(label, select);
   return row;
-}
-
-function makeSettingsSection(title) {
-  const section = document.createElement("div");
-  section.className = "settings-section";
-  const heading = document.createElement("p");
-  heading.className = "settings-section__heading";
-  heading.textContent = title;
-  section.appendChild(heading);
-  return section;
 }
 
 function makeDomainListBlock(title, list, onAdd, onRemove) {
