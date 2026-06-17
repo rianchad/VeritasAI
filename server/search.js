@@ -36,3 +36,4 @@ async function searchWeb(query, { count = 6 } = {}) {
 }
 
 module.exports = { searchWeb };
+
