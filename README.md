@@ -30,12 +30,12 @@ Each claim runs through an agentic search loop backed by live Brave Search resul
 
 Every claim returns a confidence level with a one-sentence rationale:
 
-| Level | Criteria |
-|-------|----------|
-| 🟢 **High** | 3+ independent sources confirm, or a primary source directly confirms with no credible contradictions |
-| 🟡 **Medium** | Partial support, indirect evidence, mixed signals, or one credible contradiction |
-| 🔴 **Low** | No sources confirm, active contradictions found, or results don't address the claim |
-| ⬛ **No sources found** | Zero supporting and zero primary sources returned — claim may be unverifiable or newly reported |
+| Level                   | Criteria                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| 🟢 **High**             | 3+ independent sources confirm, or a primary source directly confirms with no credible contradictions |
+| 🟡 **Medium**           | Partial support, indirect evidence, mixed signals, or one credible contradiction                      |
+| 🔴 **Low**              | No sources confirm, active contradictions found, or results don't address the claim                   |
+| ⬛ **No sources found** | Zero supporting and zero primary sources returned — claim may be unverifiable or newly reported       |
 
 ---
 
@@ -80,31 +80,31 @@ The article headline and opening paragraphs get classified as **Breaking**, **De
 - Breaking and Developing stories get a banner at the top of the sidebar
 - Sources older than 12 hours in a breaking story trigger a one-notch confidence downgrade
 - Sources older than 24 hours in a breaking story get visually muted on the card
-- Every source card shows a relative timestamp (e.g. *5 hours ago*) pulled from the search API
+- Every source card shows a relative timestamp (e.g. _5 hours ago_) pulled from the search API
 - When publication dates are unavailable, recency adjustments are skipped
 
 ---
 
 ### More Features
 
-| Feature | Description |
-|---------|-------------|
-| **Text Selection** | Highlight any sentence in the article to fact-check it on demand. Result gets inserted at the top of the claims list. |
-| **Claim Highlighting** | Hover over a claim card to highlight the matching paragraph in the article. Scrolls into view if needed. |
-| **Credibility Score** | A live percentage bar updates as each claim streams in. Green 75%+, yellow 40%+, orange below that. |
-| **Streaming Results** | Claims appear in the sidebar as they finish. First result shows up within seconds. |
-| **Shareable Links** | Generate a 7-day read-only link to the full fact-check. No extension required to view it. |
+| Feature                | Description                                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Text Selection**     | Highlight any sentence in the article to fact-check it on demand. Result gets inserted at the top of the claims list. |
+| **Claim Highlighting** | Hover over a claim card to highlight the matching paragraph in the article. Scrolls into view if needed.              |
+| **Credibility Score**  | A live percentage bar updates as each claim streams in. Green 75%+, yellow 40%+, orange below that.                   |
+| **Streaming Results**  | Claims appear in the sidebar as they finish. First result shows up within seconds.                                    |
+| **Shareable Links**    | Generate a 7-day read-only link to the full fact-check. No extension required to view it.                             |
 
 ---
 
 ### Edge Cases
 
-| Scenario | Behavior |
-|----------|----------|
-| Paywalled article | Fact-checks the visible text only |
-| Opinion or editorial piece | Flagged at the top of the sidebar |
-| Rounding or unit differences | Not treated as contradictions |
-| Empty search results | Returns Low confidence with a `citation_needed` flag |
+| Scenario                     | Behavior                                             |
+| ---------------------------- | ---------------------------------------------------- |
+| Paywalled article            | Fact-checks the visible text only                    |
+| Opinion or editorial piece   | Flagged at the top of the sidebar                    |
+| Rounding or unit differences | Not treated as contradictions                        |
+| Empty search results         | Returns Low confidence with a `citation_needed` flag |
 
 ---
 
@@ -162,13 +162,13 @@ flowchart TD
 
 ## Permissions
 
-| Permission | Why |
-|------------|-----|
-| `activeTab` | Reads the URL and title of the tab you're currently on so the extension knows which article to analyze |
-| `scripting` | Injects `content.js` into the page to extract the article body text |
-| `sidePanel` | Opens the fact-check results in Chrome's native side panel |
-| `storage` | Saves your API key and preferences locally so you don't have to re-enter them |
-| `host_permissions: <all_urls>` | Allows `content.js` to run on any news site, not just a hardcoded list |
+| Permission                     | Why                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `activeTab`                    | Reads the URL and title of the tab you're currently on so the extension knows which article to analyze |
+| `scripting`                    | Injects `content.js` into the page to extract the article body text                                    |
+| `sidePanel`                    | Opens the fact-check results in Chrome's native side panel                                             |
+| `storage`                      | Saves your API key and preferences locally so you don't have to re-enter them                          |
+| `host_permissions: <all_urls>` | Allows `content.js` to run on any news site, not just a hardcoded list                                 |
 
 VeritasAI does not collect, transmit, or store your browsing history. The only data that leaves your browser is the article text sent to the backend for analysis.
 

@@ -176,6 +176,11 @@ const PRIMARY_SOURCE_DOMAINS = [
   "nih.gov",
 ];
 
+/**
+ * Extracts the hostname from a URL, stripping the leading "www." if present.
+ * @param {string} url - Absolute URL string.
+ * @returns {string} Normalized hostname, or empty string if the URL is invalid.
+ */
 function getDomain(url) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -184,11 +189,22 @@ function getDomain(url) {
   }
 }
 
+/**
+ * Returns the political lean label for the outlet at the given URL.
+ * @param {string} url - Absolute URL of a source.
+ * @returns {string} Lean label (e.g. "Center", "Lean Left") or "Unrated" if unknown.
+ */
 function getLean(url) {
   const domain = getDomain(url);
   return LEAN_BY_DOMAIN[domain] || "Unrated";
 }
 
+/**
+ * Returns true if the URL's domain qualifies as a primary source
+ * (government, official wire dispatch, or academic institution).
+ * @param {string} url - Absolute URL to check.
+ * @returns {boolean}
+ */
 function isPrimarySource(url) {
   const domain = getDomain(url);
   return PRIMARY_SOURCE_DOMAINS.some((suffix) =>
@@ -197,5 +213,3 @@ function isPrimarySource(url) {
 }
 
 module.exports = { getDomain, getLean, isPrimarySource };
-
-
