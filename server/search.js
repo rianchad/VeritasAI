@@ -4,6 +4,13 @@
 
 const BRAVE_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 
+/**
+ * Queries the Brave Search API and returns normalized web results.
+ * @param {string} query - The search query string.
+ * @param {{ count?: number }} [options] - Optional parameters.
+ * @param {number} [options.count=6] - Maximum number of results to return.
+ * @returns {Promise<Array<{title: string, url: string, description: string, age: string|null, publishedAt: string|null}>>}
+ */
 async function searchWeb(query, { count = 6 } = {}) {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
   if (!apiKey) throw new Error("BRAVE_SEARCH_API_KEY is not configured.");
@@ -26,14 +33,16 @@ async function searchWeb(query, { count = 6 } = {}) {
   const data = await response.json();
   const results = data?.web?.results || [];
 
-  return results.map((result) => ({
-    title: result.title,
-    url: result.url,
-    description: result.description,
-    age: result.page_age || null,        // human-readable relative string, e.g. "5 hours ago"
-    publishedAt: result.page_fetched || null, // ISO crawl timestamp used for threshold math
-  }));
+  return results.map((result) => {
+    const normalized = {
+      title: result.title,
+      url: result.url,
+      description: result.description,
+      age: result.page_age || null, // human-readable relative string, e.g. "5 hours ago"
+      publishedAt: result.page_fetched || null, // ISO crawl timestamp used for threshold math
+    };
+    return normalized;
+  });
 }
 
 module.exports = { searchWeb };
-

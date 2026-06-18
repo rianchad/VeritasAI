@@ -16,6 +16,10 @@ const { getDomain, getLean, isPrimarySource } = require("./sourceLean");
 const MODEL = "claude-haiku-4-5-20251001";
 
 let anthropicClient = null;
+/**
+ * Returns the shared Anthropic SDK client, creating it on first call.
+ * @returns {import("@anthropic-ai/sdk").default}
+ */
 function client() {
   if (!anthropicClient) {
     anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -23,12 +27,32 @@ function client() {
   return anthropicClient;
 }
 
+/**
+ * Parses JSON from a string, stripping optional markdown code fences first.
+ * @param {string} text - Raw text that may contain a fenced JSON block.
+ * @returns {unknown} Parsed JSON value.
+ * @throws {SyntaxError} If the extracted text is not valid JSON.
+ */
 function extractJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1] : text;
+  let candidate;
+  if (fenced) {
+    candidate = fenced[1];
+  } else {
+    candidate = text;
+  }
   return JSON.parse(candidate.trim());
 }
 
+/**
+ * Sends a prompt to Claude and parses the response as JSON, retrying once on parse failure.
+ * @param {string} prompt - The user message to send.
+ * @param {{ maxTokens?: number, retries?: number }} [options]
+ * @param {number} [options.maxTokens=1500] - Claude max_tokens cap.
+ * @param {number} [options.retries=1] - Number of extra attempts after a JSON parse failure.
+ * @returns {Promise<unknown>} Parsed JSON value from Claude's response.
+ * @throws {Error} If all attempts fail to produce valid JSON.
+ */
 async function askClaudeForJson(prompt, { maxTokens = 1500, retries = 1 } = {}) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -55,6 +79,12 @@ async function askClaudeForJson(prompt, { maxTokens = 1500, retries = 1 } = {}) 
 
 // ---- Volatility Classifier -------------------------------------------------
 
+/**
+ * Builds the classification prompt asking Claude to rate temporal urgency.
+ * @param {string} headline - Article headline.
+ * @param {string} intro - Opening text of the article (truncated by caller).
+ * @returns {string} Prompt string ready to send to Claude.
+ */
 const VOLATILITY_PROMPT = (headline, intro) =>
   `You are classifying the temporal urgency of a news article.
 
@@ -73,12 +103,19 @@ Classify as one of:
 Respond with ONLY a JSON object, no prose, no markdown:
 {"volatility": "breaking" | "developing" | "stable"}`;
 
+/**
+ * Classifies a news article's temporal urgency as breaking, developing, or stable.
+ * Defaults to "stable" on any error so it never blocks the pipeline.
+ * @param {string} headline - Article headline.
+ * @param {string} intro - Opening article text used as context.
+ * @returns {Promise<"breaking"|"developing"|"stable">}
+ */
 async function classifyVolatility(headline, intro) {
   try {
-    const result = await askClaudeForJson(
-      VOLATILITY_PROMPT(headline, intro.slice(0, 600)),
-      { maxTokens: 50, retries: 1 }
-    );
+    const result = await askClaudeForJson(VOLATILITY_PROMPT(headline, intro.slice(0, 600)), {
+      maxTokens: 50,
+      retries: 1,
+    });
     if (["breaking", "developing", "stable"].includes(result?.volatility)) {
       return result.volatility;
     }
@@ -90,10 +127,20 @@ async function classifyVolatility(headline, intro) {
 
 // ---- Agent 1: Claim Extractor ----------------------------------------------
 
+/**
+ * Builds the claim-extraction prompt with adaptive count instruction.
+ * @param {string} articleText - Full article body (sliced by caller before sending).
+ * @param {number|"auto"} claimCount - Target claim count or "auto" for Claude to decide.
+ * @returns {string} Prompt string ready to send to Claude.
+ */
 const CLAIM_EXTRACTION_PROMPT = (articleText, claimCount) => {
-  const countInstruction = claimCount === "auto"
-    ? "Extract as many important, distinct factual claims as the article warrants — typically 5–8, fewer for short pieces, no more than 10."
-    : `Extract exactly the ${claimCount} most important distinct factual claims.`;
+  let countInstruction;
+  if (claimCount === "auto") {
+    countInstruction =
+      "Extract as many important, distinct factual claims as the article warrants — typically 5–8, fewer for short pieces, no more than 10.";
+  } else {
+    countInstruction = `Extract exactly the ${claimCount} most important distinct factual claims.`;
+  }
 
   return `You are a fact-checking assistant that identifies discrete, checkable factual claims in a news article.
 
@@ -120,6 +167,14 @@ ${articleText.slice(0, 12000)}
 """`;
 };
 
+/**
+ * Extracts and normalizes factual claims from article text via Claude, then
+ * runs a disambiguation pass to resolve ambiguous person names.
+ * @param {string} articleText - Full article body.
+ * @param {number|"auto"} [claimCount=5] - Desired number of claims.
+ * @returns {Promise<{pieceType: "news"|"opinion"|"analysis", claims: Array<{claim: string, context: string}>}>}
+ * @throws {Error} If Claude returns no claims.
+ */
 async function extractClaims(articleText, claimCount = 5) {
   const result = await askClaudeForJson(CLAIM_EXTRACTION_PROMPT(articleText, claimCount), {
     maxTokens: 1500,
@@ -129,11 +184,18 @@ async function extractClaims(articleText, claimCount = 5) {
     throw new Error("Claim extraction returned no claims.");
   }
 
-  const maxClaims = claimCount === "auto" ? 10 : claimCount;
+  let maxClaims;
+  if (claimCount === "auto") {
+    maxClaims = 10;
+  } else {
+    maxClaims = claimCount;
+  }
 
   // Normalise: Claude may return strings (old format) or {claim, context} objects.
   const normalised = result.claims.slice(0, maxClaims).map((item) => {
-    if (typeof item === "string") return { claim: item, context: item };
+    if (typeof item === "string") {
+      return { claim: item, context: item };
+    }
     return {
       claim: String(item.claim || ""),
       context: String(item.context || item.claim || ""),
@@ -144,10 +206,15 @@ async function extractClaims(articleText, claimCount = 5) {
   // fact-checking begins, so search queries target the right person.
   const disambiguated = await disambiguateEntities(articleText, normalised);
 
+  let pieceType;
+  if (result.piece_type === "opinion" || result.piece_type === "analysis") {
+    pieceType = result.piece_type;
+  } else {
+    pieceType = "news";
+  }
+
   return {
-    pieceType: result.piece_type === "opinion" || result.piece_type === "analysis"
-      ? result.piece_type
-      : "news",
+    pieceType,
     claims: disambiguated,
   };
 }
@@ -158,6 +225,12 @@ async function extractClaims(articleText, claimCount = 5) {
 // by a surname (or an ambiguous short name) to include their full name, role,
 // and enough context for an unambiguous web search.
 
+/**
+ * Builds the entity disambiguation prompt used to rewrite ambiguous person references.
+ * @param {string} articleText - Full article body for identity resolution.
+ * @param {Array<{claim: string, context: string}>} claims - Claims to review.
+ * @returns {string} Prompt string ready to send to Claude.
+ */
 const DISAMBIGUATION_PROMPT = (articleText, claims) =>
   `You are helping prepare fact-checking search queries. Your only job is to rewrite claims that reference a person by surname alone or by an ambiguous short name, so that each person is identified unambiguously.
 
@@ -175,17 +248,26 @@ ${JSON.stringify(claims, null, 2)}
 
 Respond with ONLY a JSON array of the same length and shape as the input, with "claim" and "context" fields updated where needed. No prose, no markdown fences.`;
 
+/**
+ * Rewrites claims containing ambiguous surname-only references with full names and roles.
+ * Falls back to the original claims array on any error so it never blocks the pipeline.
+ * @param {string} articleText - Full article body used to resolve identities.
+ * @param {Array<{claim: string, context: string}>} claims - Claims to potentially rewrite.
+ * @returns {Promise<Array<{claim: string, context: string}>>} Rewritten (or original) claims.
+ */
 async function disambiguateEntities(articleText, claims) {
   try {
-    const rewritten = await askClaudeForJson(
-      DISAMBIGUATION_PROMPT(articleText, claims),
-      { maxTokens: 1500, retries: 1 }
-    );
+    const rewritten = await askClaudeForJson(DISAMBIGUATION_PROMPT(articleText, claims), {
+      maxTokens: 1500,
+      retries: 1,
+    });
     if (!Array.isArray(rewritten) || rewritten.length !== claims.length) {
       return claims; // shape mismatch — fall back to originals
     }
     return rewritten.map((item, i) => {
-      if (typeof item === "string") return claims[i]; // unexpected format
+      if (typeof item === "string") {
+        return claims[i]; // unexpected format
+      }
       return {
         claim: String(item.claim || claims[i].claim),
         context: String(item.context || item.claim || claims[i].context),
@@ -198,38 +280,67 @@ async function disambiguateEntities(articleText, claims) {
 
 // ---- Agents 2 & 3 merged: Verification + Divergence -------------------------
 
+/**
+ * Enriches raw Brave Search results with political lean, primary-source flag, and domain label.
+ * @param {Array<{url: string, title: string, description: string, age: string|null, publishedAt: string|null}>} results
+ * @returns {Array<{outlet: string, title: string, url: string, description: string, lean: string, isPrimary: boolean, age: string|null, publishedAt: string|null}>}
+ */
 function annotateSources(results) {
-  return results.map((result) => ({
-    outlet: getDomain(result.url),
-    title: result.title,
-    url: result.url,
-    description: result.description,
-    lean: getLean(result.url),
-    isPrimary: isPrimarySource(result.url),
-    age: result.age || null,
-    publishedAt: result.publishedAt || null,
-  }));
+  return results.map((result) => {
+    const annotated = {
+      outlet: getDomain(result.url),
+      title: result.title,
+      url: result.url,
+      description: result.description,
+      lean: getLean(result.url),
+      isPrimary: isPrimarySource(result.url),
+      age: result.age || null,
+      publishedAt: result.publishedAt || null,
+    };
+    return annotated;
+  });
 }
 
+/**
+ * Serializes annotated sources into a numbered list string suitable for Claude prompts.
+ * @param {Array<{outlet: string, lean: string, isPrimary: boolean, title: string, description: string, url: string}>} sources
+ * @returns {string} Numbered source list with outlet, lean, title, snippet, and URL.
+ */
 function formatSourcesForPrompt(sources) {
-  return sources
-    .map(
-      (s, i) =>
-        `[${i + 1}] ${s.outlet} (${s.lean}${s.isPrimary ? ", primary source" : ""})\nTitle: ${s.title}\nSnippet: ${s.description}\nURL: ${s.url}`
-    )
-    .join("\n\n");
+  const lines = sources.map((s, i) => {
+    const primaryTag = s.isPrimary ? ", primary source" : "";
+    return `[${i + 1}] ${s.outlet} (${s.lean}${primaryTag})\nTitle: ${s.title}\nSnippet: ${s.description}\nURL: ${s.url}`;
+  });
+  return lines.join("\n\n");
 }
 
-const FACT_CHECK_PROMPT = (claim, context, sources, pieceType) => `You are a careful, neutral research assistant helping a reader understand the context behind a factual claim from a news article. You never issue a hard true/false verdict — you assess how well-supported the claim is and surface sources across the political spectrum.
+/**
+ * Builds the fact-check synthesis prompt with claim, resolved context, and annotated sources.
+ * @param {string} claim - Original claim text from the article.
+ * @param {string|null} context - Resolved version of the claim with vague references replaced.
+ * @param {Array<object>} sources - Annotated search results from annotateSources().
+ * @param {string} pieceType - "news", "opinion", or "analysis".
+ * @returns {string} Prompt string ready to send to Claude.
+ */
+const FACT_CHECK_PROMPT = (
+  claim,
+  context,
+  sources,
+  pieceType
+) => `You are a careful, neutral research assistant helping a reader understand the context behind a factual claim from a news article. You never issue a hard true/false verdict — you assess how well-supported the claim is and surface sources across the political spectrum.
 ${pieceType !== "news" ? `\nNote: This claim comes from a ${pieceType} piece. Assess whether it is stated as objective fact or as the author's interpretation/argument — note this in your confidence_rationale if relevant.\n` : ""}
 Claim to assess:
 "${claim}"
-${context && context !== claim ? `
+${
+  context && context !== claim
+    ? `
 Resolved claim (vague references replaced with their specific referents from the article):
 "${context}"
 
 Before formulating your assessment, resolve all pronouns and vague references in the claim using the resolved version above. Base your search query reasoning and synthesis on the resolved claim, not the shorthand form.
-` : ""}
+`
+    : ""
+}
 Here is a set of search results gathered about this claim. Use ONLY these results plus your general knowledge of how to weigh source quality:
 
 ${formatSourcesForPrompt(sources)}
@@ -263,6 +374,13 @@ Additional rules:
 const RECENCY_THRESHOLD_MS = 10 * 60 * 60 * 1000;
 const CONFIDENCE_ORDER = ["high", "medium", "low"];
 
+/**
+ * Downgrades confidence by one level when the story is volatile and all dated sources
+ * are older than the recency threshold. Returns the original result unchanged for stable stories.
+ * @param {object} result - Fact-check synthesis object from Claude.
+ * @param {"breaking"|"developing"|"stable"} volatility - Story's temporal urgency.
+ * @returns {object} Result with potentially downgraded confidence and updated rationale.
+ */
 function applyRecencyAdjustment(result, volatility) {
   if (volatility === "stable") return result;
 
@@ -274,30 +392,54 @@ function applyRecencyAdjustment(result, volatility) {
   if (candidates.length === 0) return result; // no dates → can't assess; don't downgrade
 
   const newestMs = Math.max(...candidates.map((s) => new Date(s.publishedAt).getTime()));
-  if (Date.now() - newestMs <= RECENCY_THRESHOLD_MS) return result; // fresh enough
+  if (Date.now() - newestMs <= RECENCY_THRESHOLD_MS) {
+    return result; // fresh enough
+  }
 
   const currentIdx = CONFIDENCE_ORDER.indexOf(result.confidence);
-  const downgraded =
-    currentIdx < CONFIDENCE_ORDER.length - 1
-      ? CONFIDENCE_ORDER[currentIdx + 1]
-      : result.confidence;
+  let downgraded;
+  if (currentIdx < CONFIDENCE_ORDER.length - 1) {
+    downgraded = CONFIDENCE_ORDER[currentIdx + 1];
+  } else {
+    downgraded = result.confidence;
+  }
 
   const note = `Confidence downgraded: this is a ${volatility} story and the most recent sources may be outdated.`;
-  return {
+  let updatedRationale;
+  if (result.confidence_rationale) {
+    updatedRationale = `${result.confidence_rationale} ${note}`;
+  } else {
+    updatedRationale = note;
+  }
+
+  const adjustedResult = {
     ...result,
     confidence: downgraded,
-    confidence_rationale: result.confidence_rationale
-      ? `${result.confidence_rationale} ${note}`
-      : note,
+    confidence_rationale: updatedRationale,
     recency_downgraded: true,
   };
+  return adjustedResult;
 }
 
+/**
+ * Runs the full fact-check pipeline for a single claim: web search, source annotation,
+ * Claude synthesis, primary-source enforcement, date enrichment, and recency adjustment.
+ * @param {string} claim - Verbatim claim text extracted from the article.
+ * @param {string|null} [context=null] - Resolved version of the claim for more accurate search queries.
+ * @param {"news"|"opinion"|"analysis"} [pieceType="news"] - Article content type.
+ * @param {"breaking"|"developing"|"stable"} [volatility="stable"] - Story temporal urgency.
+ * @returns {Promise<object>} Fact-check result with confidence, sources, and divergence summary.
+ */
 async function factCheckClaim(claim, context = null, pieceType = "news", volatility = "stable") {
   // Use the resolved context as the search query when available — it contains
   // the specific referents that vague phrases ("such services", "the measure")
   // were pointing to, which produces more accurate search results.
-  const searchQuery = (context && context !== claim) ? context : claim;
+  let searchQuery;
+  if (context && context !== claim) {
+    searchQuery = context;
+  } else {
+    searchQuery = claim;
+  }
   const rawResults = await searchWeb(searchQuery, { count: 8 });
   const sources = annotateSources(rawResults);
 
@@ -326,20 +468,31 @@ async function factCheckClaim(claim, context = null, pieceType = "news", volatil
   if (Array.isArray(synthesis.primary_sources)) {
     synthesis.primary_sources = synthesis.primary_sources
       .filter((s) => s.url && isPrimarySource(s.url))
-      .map((s) => ({
-        ...s,
-        outlet: s.outlet || getDomain(s.url),
-        lean: getLean(s.url),
-      }));
+      .map((s) => {
+        const enriched = {
+          ...s,
+          outlet: s.outlet || getDomain(s.url),
+          lean: getLean(s.url),
+        };
+        return enriched;
+      });
   }
 
   // Carry age/publishedAt from the search results onto each source bucket so
   // the UI can render timestamps and applyRecencyAdjustment can do math.
   const datesByUrl = Object.fromEntries(
-    sources.map((s) => [s.url, { age: s.age, publishedAt: s.publishedAt }])
+    sources.map((s) => {
+      return [s.url, { age: s.age, publishedAt: s.publishedAt }];
+    })
   );
-  const enrichDates = (list) =>
-    (list || []).map((s) => ({ ...s, ...(datesByUrl[s.url] || {}) }));
+
+  const enrichDates = (list) => {
+    const safeList = list || [];
+    return safeList.map((s) => {
+      const dates = datesByUrl[s.url] || {};
+      return { ...s, ...dates };
+    });
+  };
 
   const enriched = {
     ...synthesis,
@@ -348,7 +501,11 @@ async function factCheckClaim(claim, context = null, pieceType = "news", volatil
     primary_sources: enrichDates(synthesis.primary_sources),
   };
 
-  const finalResult = { claim, context: context || claim, ...applyRecencyAdjustment(enriched, volatility) };
+  const finalResult = {
+    claim,
+    context: context || claim,
+    ...applyRecencyAdjustment(enriched, volatility),
+  };
   if (
     (!finalResult.supporting_sources || finalResult.supporting_sources.length === 0) &&
     (!finalResult.primary_sources || finalResult.primary_sources.length === 0)

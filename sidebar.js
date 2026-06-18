@@ -41,6 +41,10 @@ const states = {
 
 let previousState = "idle";
 
+/**
+ * Shows one named state panel and hides all others.
+ * @param {string} name - Key from the `states` map (e.g. "idle", "results").
+ */
 function showState(name) {
   for (const [key, el] of Object.entries(states)) {
     el.classList.toggle("hidden", key !== name);
@@ -49,6 +53,11 @@ function showState(name) {
 
 const SECONDARY_VIEWS = new Set(["settings", "history"]);
 
+/**
+ * Records the current primary state as the back-navigation target, then shows a secondary view.
+ * Secondary views (settings, history) are never themselves recorded as back targets.
+ * @param {string} name - Secondary state name to display.
+ */
 function openSecondaryView(name) {
   for (const [key, el] of Object.entries(states)) {
     // Never record a secondary view as the return destination
@@ -71,11 +80,20 @@ const DEFAULT_SETTINGS = {
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 
+/**
+ * Loads persisted settings from chrome.storage.sync and merges with defaults.
+ * @returns {Promise<void>}
+ */
 async function loadSettings() {
   const stored = await chrome.storage.sync.get("veritas_settings");
   currentSettings = { ...DEFAULT_SETTINGS, ...(stored.veritas_settings || {}) };
 }
 
+/**
+ * Merges a settings patch into currentSettings and persists the result.
+ * @param {Partial<typeof DEFAULT_SETTINGS>} patch - Fields to update.
+ * @returns {Promise<void>}
+ */
 async function saveSettings(patch) {
   currentSettings = { ...currentSettings, ...patch };
   await chrome.storage.sync.set({ veritas_settings: currentSettings });
@@ -86,6 +104,11 @@ async function saveSettings(patch) {
 let domainWhitelist = [];
 let domainBlacklist = [];
 
+/**
+ * Strips the scheme, port, path, and leading "www." from a URL or bare domain string.
+ * @param {string} urlOrDomain - Full URL or domain name to normalize.
+ * @returns {string} Lowercase, www-stripped hostname (e.g. "nytimes.com").
+ */
 function normalizeDomain(urlOrDomain) {
   try {
     const host = urlOrDomain.includes("://")
@@ -93,21 +116,38 @@ function normalizeDomain(urlOrDomain) {
       : urlOrDomain.trim().toLowerCase();
     return host.replace(/^www\./, "");
   } catch {
-    return urlOrDomain.trim().toLowerCase().replace(/^www\./, "");
+    return urlOrDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^www\./, "");
   }
 }
 
+/**
+ * Returns true if tabDomain equals listEntry or is a subdomain of it.
+ * @param {string} tabDomain - Normalized domain of the active tab.
+ * @param {string} listEntry - Domain entry from the whitelist or blacklist.
+ * @returns {boolean}
+ */
 function domainMatches(tabDomain, listEntry) {
   const entry = normalizeDomain(listEntry);
   return tabDomain === entry || tabDomain.endsWith("." + entry);
 }
 
+/**
+ * Loads the whitelist and blacklist domain arrays from chrome.storage.sync.
+ * @returns {Promise<void>}
+ */
 async function loadDomainLists() {
   const stored = await chrome.storage.sync.get(["veritas_whitelist", "veritas_blacklist"]);
   domainWhitelist = stored.veritas_whitelist || [];
   domainBlacklist = stored.veritas_blacklist || [];
 }
 
+/**
+ * Persists the current in-memory whitelist and blacklist to chrome.storage.sync.
+ * @returns {Promise<void>}
+ */
 async function saveDomainLists() {
   await chrome.storage.sync.set({
     veritas_whitelist: domainWhitelist,
@@ -120,11 +160,22 @@ async function saveDomainLists() {
 let articleHistory = [];
 const HISTORY_MAX = 20;
 
+/**
+ * Loads the article history array from chrome.storage.local.
+ * @returns {Promise<void>}
+ */
 async function loadHistory() {
   const stored = await chrome.storage.local.get("veritas_history");
   articleHistory = stored.veritas_history || [];
 }
 
+/**
+ * Computes a credibility score summary for the article and prepends it to the history list,
+ * deduplicating by URL and capping at HISTORY_MAX entries.
+ * @param {{url: string, title: string}} article - Article metadata.
+ * @param {Array<{claim?: string, confidence?: string}>} results - Fact-check results.
+ * @returns {Promise<void>}
+ */
 async function saveToHistory(article, results) {
   const dist = { high: 0, medium: 0, low: 0 };
   const claims = [];
@@ -138,7 +189,7 @@ async function saveToHistory(article, results) {
   const scored = results.filter((r) => r.confidence in CONFIDENCE_VALUES);
   const credScore = scored.length
     ? Math.round(
-        scored.reduce((s, r) => s + CONFIDENCE_VALUES[r.confidence], 0) / scored.length * 100
+        (scored.reduce((s, r) => s + CONFIDENCE_VALUES[r.confidence], 0) / scored.length) * 100
       )
     : 0;
 
@@ -161,21 +212,86 @@ async function saveToHistory(article, results) {
 // ---- Cross-article claim tracking -------------------------------------------
 
 const STOP_WORDS_SIG = new Set([
-  "that", "this", "with", "have", "from", "they", "been", "said", "will",
-  "would", "could", "should", "their", "there", "about", "after", "before",
-  "when", "where", "which", "were", "what", "into", "also", "more", "than",
-  "some", "each", "such", "both", "then", "over", "only", "most", "other",
-  "very", "just", "even", "much", "many", "time", "year", "years", "says",
-  "according", "percent", "people", "those", "while", "through", "state",
-  "government", "president", "official", "officials", "told", "during",
+  "that",
+  "this",
+  "with",
+  "have",
+  "from",
+  "they",
+  "been",
+  "said",
+  "will",
+  "would",
+  "could",
+  "should",
+  "their",
+  "there",
+  "about",
+  "after",
+  "before",
+  "when",
+  "where",
+  "which",
+  "were",
+  "what",
+  "into",
+  "also",
+  "more",
+  "than",
+  "some",
+  "each",
+  "such",
+  "both",
+  "then",
+  "over",
+  "only",
+  "most",
+  "other",
+  "very",
+  "just",
+  "even",
+  "much",
+  "many",
+  "time",
+  "year",
+  "years",
+  "says",
+  "according",
+  "percent",
+  "people",
+  "those",
+  "while",
+  "through",
+  "state",
+  "government",
+  "president",
+  "official",
+  "officials",
+  "told",
+  "during",
 ]);
 
+/**
+ * Returns the set of non-stop words (≥4 letters) from text, lowercased.
+ * Mirrors the content-script version but uses STOP_WORDS_SIG.
+ * @param {string} text - Input text to tokenize.
+ * @returns {Set<string>} Unique significant word tokens.
+ */
 function sigWords(text) {
-  return new Set(
-    (text.toLowerCase().match(/\b[a-z]{4,}\b/g) || []).filter((w) => !STOP_WORDS_SIG.has(w))
-  );
+  const allWords = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+  const filtered = allWords.filter((w) => {
+    return !STOP_WORDS_SIG.has(w);
+  });
+  return new Set(filtered);
 }
 
+/**
+ * Computes the keyword overlap ratio between two claim strings.
+ * Returns 0 if either string has fewer than 5 significant words to avoid false positives.
+ * @param {string} a - First claim text.
+ * @param {string} b - Second claim text.
+ * @returns {number} Overlap ratio in [0, 1]: shared words / min(|setA|, |setB|).
+ */
 function keywordOverlap(a, b) {
   const setA = sigWords(a);
   const setB = sigWords(b);
@@ -186,6 +302,11 @@ function keywordOverlap(a, b) {
   return hits / Math.min(setA.size, setB.size);
 }
 
+/**
+ * Searches article history for a past claim with keyword overlap ≥ 0.6.
+ * @param {string} claimText - Current claim to compare against history.
+ * @returns {{text: string, confidence: string, timestamp: number}|null} Best match or null.
+ */
 function findSimilarPastClaim(claimText) {
   let best = null;
   let bestScore = 0.6;
@@ -216,6 +337,9 @@ let analyzeStartTime = 0;
 
 // ---- Progress ---------------------------------------------------------------
 
+/**
+ * Updates the progress bar fill width and status text based on completed/total claim counts.
+ */
 function updateProgress() {
   const pct = totalClaims > 0 ? (completedClaims / totalClaims) * 100 : 0;
   progressFill.style.width = `${pct}%`;
@@ -231,6 +355,10 @@ function updateProgress() {
 
 const CONFIDENCE_VALUES = { high: 1.0, medium: 0.5, low: 0.0 };
 
+/**
+ * Accumulates a single claim's confidence value into the running score and re-renders the bar.
+ * @param {string} confidence - One of "high", "medium", or "low".
+ */
 function updateCredibilityScore(confidence) {
   if (!(confidence in CONFIDENCE_VALUES)) return;
   scoreSum += CONFIDENCE_VALUES[confidence];
@@ -238,22 +366,40 @@ function updateCredibilityScore(confidence) {
   renderCredibilityScore();
 }
 
+/**
+ * Renders the credibility score bar and summary label from the current scoreSum/scoreCount state.
+ * No-ops if no claims have been scored yet.
+ */
 function renderCredibilityScore() {
   if (scoreCount === 0) return;
   credibilityScoreEl.classList.remove("hidden");
   const avg = scoreSum / scoreCount;
   const pct = Math.round(avg * 100);
-  const label = avg >= 0.75 ? "high" : avg >= 0.4 ? "medium" : "low";
+  let label;
+  if (avg >= 0.75) {
+    label = "high";
+  } else if (avg >= 0.4) {
+    label = "medium";
+  } else {
+    label = "low";
+  }
   credibilityFillEl.style.width = `${pct}%`;
   credibilityFillEl.className = `credibility-score__fill credibility-score__fill--${label}`;
-  const resolvedLabel = scoreCount < totalClaims
-    ? `${scoreCount} of ${totalClaims} claims resolved · ${pct}% avg confidence`
-    : `${scoreCount}/${totalClaims} claims · ${pct}% avg confidence`;
+  let resolvedLabel;
+  if (scoreCount < totalClaims) {
+    resolvedLabel = `${scoreCount} of ${totalClaims} claims resolved · ${pct}% avg confidence`;
+  } else {
+    resolvedLabel = `${scoreCount}/${totalClaims} claims · ${pct}% avg confidence`;
+  }
   credibilitySummaryEl.textContent = resolvedLabel;
 }
 
 // ---- Confidence filter ------------------------------------------------------
 
+/**
+ * Shows or hides claim cards based on the confidenceFilter setting.
+ * The "disputed" pinned card is always kept visible regardless of filter.
+ */
 function applyConfidenceFilter() {
   const filter = currentSettings.confidenceFilter;
   for (const li of claimsListEl.querySelectorAll(".claim-card")) {
@@ -262,7 +408,10 @@ function applyConfidenceFilter() {
       li.classList.remove("filter-hidden");
       continue;
     }
-    if (filter === "all") { li.classList.remove("filter-hidden"); continue; }
+    if (filter === "all") {
+      li.classList.remove("filter-hidden");
+      continue;
+    }
     const isHigh = li.classList.contains("claim-card--high");
     const isMedium = li.classList.contains("claim-card--medium");
     let hide = false;
@@ -274,10 +423,19 @@ function applyConfidenceFilter() {
 
 // ---- Tab / content-script helpers -------------------------------------------
 
+/**
+ * Returns the currently active tab in the current window.
+ * @returns {Promise<chrome.tabs.Tab>}
+ */
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
+/**
+ * Injects the content script into the active tab if needed, then requests article metadata.
+ * @returns {Promise<{url: string, title: string, text: string}>} Article metadata from the page.
+ * @throws {Error} If there is no active tab.
+ */
 async function getArticleFromActiveTab() {
   const tab = await getActiveTab();
   if (!tab?.id) throw new Error("No active tab found.");
@@ -295,6 +453,12 @@ async function getArticleFromActiveTab() {
   return chrome.tabs.sendMessage(tab.id, { type: "GET_ARTICLE" });
 }
 
+/**
+ * Sends a message to the content script in the active tab. Silently ignores errors
+ * that occur when the content script is absent (e.g. on chrome:// pages).
+ * @param {object} message - Message object forwarded to the content script.
+ * @returns {Promise<void>}
+ */
 async function sendToContentScript(message) {
   try {
     const tab = await getActiveTab();
@@ -306,6 +470,10 @@ async function sendToContentScript(message) {
 
 // ---- Article meta -----------------------------------------------------------
 
+/**
+ * Renders the article title and URL into the article-meta element.
+ * @param {{title?: string, url: string}} article - Article metadata object.
+ */
 function renderArticleMeta(article) {
   articleMetaEl.innerHTML = "";
   const title = document.createElement("p");
@@ -317,6 +485,11 @@ function renderArticleMeta(article) {
   articleMetaEl.append(title, url);
 }
 
+/**
+ * Inserts or removes a volatility banner below the article meta.
+ * No-ops for "stable" stories; removes any existing banner first.
+ * @param {"breaking"|"developing"|"stable"} volatility
+ */
 function renderVolatilityBanner(volatility) {
   const existing = document.getElementById("volatility-banner");
   if (existing) existing.remove();
@@ -324,12 +497,20 @@ function renderVolatilityBanner(volatility) {
   const banner = document.createElement("div");
   banner.id = "volatility-banner";
   banner.className = `volatility-banner volatility-banner--${volatility}`;
-  banner.textContent = volatility === "breaking"
-    ? "Breaking — sources may be incomplete or unverified"
-    : "Developing — some sources may be outdated";
+  if (volatility === "breaking") {
+    banner.textContent = "Breaking — sources may be incomplete or unverified";
+  } else {
+    banner.textContent = "Developing — some sources may be outdated";
+  }
   articleMetaEl.appendChild(banner);
 }
 
+/**
+ * Appends a one-line reading-time and fact-check-elapsed-time stat below the article meta.
+ * Replaces any existing stat line from a previous run.
+ * @param {number} wordCount - Article word count used to estimate reading time.
+ * @param {number} elapsedSeconds - Wall-clock seconds taken to complete fact-checking.
+ */
 function renderReadingTimeStat(wordCount, elapsedSeconds) {
   const existing = document.getElementById("reading-stat-line");
   if (existing) existing.remove();
@@ -350,6 +531,11 @@ function renderReadingTimeStat(wordCount, elapsedSeconds) {
   articleMetaEl.appendChild(stat);
 }
 
+/**
+ * Inserts a banner indicating opinion or analysis content when the piece type is not "news".
+ * Removes any existing piece-type banner first.
+ * @param {"news"|"opinion"|"analysis"} pieceType
+ */
 function renderPieceTypeBanner(pieceType) {
   const existing = document.getElementById("piece-type-banner");
   if (existing) existing.remove();
@@ -357,9 +543,11 @@ function renderPieceTypeBanner(pieceType) {
   const banner = document.createElement("div");
   banner.id = "piece-type-banner";
   banner.className = "piece-type-banner";
-  banner.textContent = pieceType === "opinion"
-    ? "Opinion / Editorial — claims may reflect the author's perspective"
-    : "Analysis / Commentary — interprets events rather than reporting them";
+  if (pieceType === "opinion") {
+    banner.textContent = "Opinion / Editorial — claims may reflect the author's perspective";
+  } else {
+    banner.textContent = "Analysis / Commentary — interprets events rather than reporting them";
+  }
   articleMetaEl.appendChild(banner);
 }
 
@@ -367,6 +555,12 @@ function renderPieceTypeBanner(pieceType) {
 
 const claimCardByText = new Map();
 
+/**
+ * Builds a claim card <li> element in the "checking" state and registers it in claimCardByText.
+ * Mouse events on the card send highlight/clear-highlight messages to the content script.
+ * @param {string} claimText - The claim text to display.
+ * @returns {HTMLLIElement} The new claim card element.
+ */
 function createClaimCard(claimText) {
   const li = document.createElement("li");
   li.className = "claim-card claim-card--checking";
@@ -401,14 +595,16 @@ function createClaimCard(claimText) {
   li.addEventListener("mouseenter", () =>
     sendToContentScript({ type: "HIGHLIGHT_CLAIM", claimText })
   );
-  li.addEventListener("mouseleave", () =>
-    sendToContentScript({ type: "CLEAR_HIGHLIGHT" })
-  );
+  li.addEventListener("mouseleave", () => sendToContentScript({ type: "CLEAR_HIGHLIGHT" }));
 
   claimCardByText.set(claimText, li);
   return li;
 }
 
+/**
+ * Clears the claims list and inserts placeholder cards with staggered animation delays.
+ * @param {string[]} claims - Array of claim text strings.
+ */
 function renderClaimPlaceholders(claims) {
   claimsListEl.innerHTML = "";
   claimCardByText.clear();
@@ -419,13 +615,23 @@ function renderClaimPlaceholders(claims) {
   });
 }
 
+/**
+ * Populates an existing "checking" claim card with the completed fact-check result.
+ * Renders badge, rationale, cross-article callout, spectrum bar, bias warning,
+ * source lists, and divergence summary.
+ * @param {object} result - Fact-check result object from the server.
+ */
 function fillClaimCard(result) {
   const li = claimCardByText.get(result.claim);
   if (!li) return;
 
   li.classList.remove("claim-card--checking");
-  const confidence = ["high", "medium", "low"].includes(result.confidence)
-    ? result.confidence : "low";
+  let confidence;
+  if (["high", "medium", "low"].includes(result.confidence)) {
+    confidence = result.confidence;
+  } else {
+    confidence = "low";
+  }
   li.classList.add(`claim-card--${confidence}`);
 
   const badge = li.querySelector(".confidence-badge");
@@ -452,7 +658,9 @@ function fillClaimCard(result) {
   const pastMatch = findSimilarPastClaim(result.claim);
   if (pastMatch) {
     const date = new Date(pastMatch.timestamp).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
     const callout = document.createElement("div");
     callout.className = "past-claim-callout";
@@ -508,6 +716,11 @@ function fillClaimCard(result) {
   applyConfidenceFilter();
 }
 
+/**
+ * Marks a claim card as errored, showing an ERROR badge and the error message in the body.
+ * @param {string} claimText - Claim text used to look up the card.
+ * @param {string} [message] - Error message to display.
+ */
 function markClaimCardError(claimText, message) {
   const li = claimCardByText.get(claimText);
   if (!li) return;
@@ -530,13 +743,19 @@ function markClaimCardError(claimText, message) {
 // ---- Spectrum bar -----------------------------------------------------------
 
 const SPECTRUM_ZONES = [
-  { key: "Left",       label: "Left",   cssClass: "spectrum-bar__zone--left" },
-  { key: "Lean Left",  label: "Lean L", cssClass: "spectrum-bar__zone--lean-left" },
-  { key: "Center",     label: "Center", cssClass: "spectrum-bar__zone--center" },
+  { key: "Left", label: "Left", cssClass: "spectrum-bar__zone--left" },
+  { key: "Lean Left", label: "Lean L", cssClass: "spectrum-bar__zone--lean-left" },
+  { key: "Center", label: "Center", cssClass: "spectrum-bar__zone--center" },
   { key: "Lean Right", label: "Lean R", cssClass: "spectrum-bar__zone--lean-right" },
-  { key: "Right",      label: "Right",  cssClass: "spectrum-bar__zone--right" },
+  { key: "Right", label: "Right", cssClass: "spectrum-bar__zone--right" },
 ];
 
+/**
+ * Builds the political-spectrum dot bar for the given supporting sources.
+ * Returns null if lean labels are disabled, or if there are no sources.
+ * @param {Array<{lean?: string}>} supportingSources - Supporting sources from the fact-check result.
+ * @returns {HTMLElement|null} The spectrum bar element, or null if not applicable.
+ */
 function buildSpectrumBar(supportingSources) {
   if (!currentSettings.showLeanLabels) return null;
   if (!supportingSources || supportingSources.length === 0) return null;
@@ -595,11 +814,17 @@ function buildSpectrumBar(supportingSources) {
   return bar;
 }
 
+/**
+ * Returns a human-readable one-line description of source lean distribution.
+ * @param {Record<string, number>} counts - Map from lean label to source count.
+ * @param {Array<{key: string}>} occupiedZones - Spectrum zones that have at least one source.
+ * @returns {string} Summary text (e.g. "Sources lean Left", "Sources are mixed").
+ */
 function buildSpectrumSummary(counts, occupiedZones) {
   if (occupiedZones.length === 0) return "No rated sources";
   if (occupiedZones.length === 5) return "Sources span Left to Right";
   if (occupiedZones.length === 1) return `All sources are ${occupiedZones[0].key}`;
-  const leftCount  = (counts["Left"]  || 0) + (counts["Lean Left"]  || 0);
+  const leftCount = (counts["Left"] || 0) + (counts["Lean Left"] || 0);
   const rightCount = (counts["Right"] || 0) + (counts["Lean Right"] || 0);
   const centerCount = counts["Center"] || 0;
   if (leftCount > 0 && rightCount === 0 && centerCount === 0) return "Sources lean Left";
@@ -610,24 +835,51 @@ function buildSpectrumSummary(counts, occupiedZones) {
   return "Sources are mixed";
 }
 
+/**
+ * Detects a political bias blindspot when ≥3 rated supporting sources all lean the same way.
+ * @param {Array<{lean?: string}>} supportingSources - Supporting sources from the fact-check result.
+ * @returns {"Left"|"Right"|null} The dominant side, or null if no blindspot detected.
+ */
 function detectBiasBlindspot(supportingSources) {
   if (!supportingSources) return null;
   const knownLeans = supportingSources
-    .map((s) => s.lean)
-    .filter((l) => l && l !== "Unrated" && l !== "Center");
-  if (knownLeans.length < 3) return null;
+    .map((s) => {
+      return s.lean;
+    })
+    .filter((l) => {
+      return l && l !== "Unrated" && l !== "Center";
+    });
+  if (knownLeans.length < 3) {
+    return null;
+  }
   const leftSet = new Set(["Left", "Lean Left"]);
   const rightSet = new Set(["Right", "Lean Right"]);
-  if (knownLeans.every((l) => leftSet.has(l))) return "Left";
-  if (knownLeans.every((l) => rightSet.has(l))) return "Right";
+  if (knownLeans.every((l) => leftSet.has(l))) {
+    return "Left";
+  }
+  if (knownLeans.every((l) => rightSet.has(l))) {
+    return "Right";
+  }
   return null;
 }
 
+/**
+ * Returns true if the source was published more than 24 hours ago and the story is volatile.
+ * @param {{publishedAt?: string}} source - Source object with an optional ISO timestamp.
+ * @returns {boolean}
+ */
 function isSourceStale(source) {
   if (currentVolatility === "stable" || !source.publishedAt) return false;
   return Date.now() - new Date(source.publishedAt).getTime() > 24 * 60 * 60 * 1000;
 }
 
+/**
+ * Builds a labeled <div> containing a source list with links, outlet hover cards, and meta text.
+ * Returns an empty <div> wrapper if sources is empty.
+ * @param {string} label - Section heading (e.g. "Supporting sources").
+ * @param {Array<{url: string, title?: string, outlet?: string, lean?: string, age?: string, publishedAt?: string}>} sources
+ * @returns {HTMLDivElement}
+ */
 function buildSourceList(label, sources) {
   const wrapper = document.createElement("div");
   if (!sources || sources.length === 0) return wrapper;
@@ -646,13 +898,21 @@ function buildSourceList(label, sources) {
     const link = document.createElement("a");
     try {
       const { protocol } = new URL(source.url || "");
-      link.href = (protocol === "http:" || protocol === "https:") ? source.url : "about:blank";
+      if (protocol === "http:" || protocol === "https:") {
+        link.href = source.url;
+      } else {
+        link.href = "about:blank";
+      }
     } catch {
       link.href = "about:blank";
     }
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = source.title || source.url;
+    if (source.title) {
+      link.textContent = source.title;
+    } else {
+      link.textContent = source.url;
+    }
     item.appendChild(link);
 
     if (source.outlet) {
@@ -693,6 +953,9 @@ function buildSourceList(label, sources) {
 
 let activeHoverCard = null;
 
+/**
+ * Removes the active credibility hover card from the DOM, if one is visible.
+ */
 function hideCredibilityCard() {
   if (activeHoverCard) {
     activeHoverCard.remove();
@@ -700,6 +963,12 @@ function hideCredibilityCard() {
   }
 }
 
+/**
+ * Creates and positions a hover card showing credibility data for an outlet.
+ * Positions the card below the anchor element, or above if there is insufficient space below.
+ * @param {string} outletName - Display name of the outlet to look up.
+ * @param {HTMLElement} anchorEl - Element the card should appear adjacent to.
+ */
 function showCredibilityCard(outletName, anchorEl) {
   hideCredibilityCard();
   const data = getOutletData(outletName);
@@ -751,9 +1020,10 @@ function showCredibilityCard(outletName, anchorEl) {
   const anchorRect = anchorEl.getBoundingClientRect();
   const cardRect = card.getBoundingClientRect();
   const spaceBelow = window.innerHeight - anchorRect.bottom;
-  const top = spaceBelow >= cardRect.height + 8
-    ? anchorRect.bottom + 6
-    : anchorRect.top - cardRect.height - 6;
+  const top =
+    spaceBelow >= cardRect.height + 8
+      ? anchorRect.bottom + 6
+      : anchorRect.top - cardRect.height - 6;
   const left = Math.min(anchorRect.left, window.innerWidth - cardRect.width - 8);
   card.style.top = `${top}px`;
   card.style.left = `${Math.max(8, left)}px`;
@@ -763,6 +1033,12 @@ function showCredibilityCard(outletName, anchorEl) {
 
 const LEAN_ORDER = ["Left", "Lean Left", "Center", "Lean Right", "Right"];
 
+/**
+ * Computes the political-spectrum span (max index − min index in LEAN_ORDER) across sources.
+ * Used to break ties when selecting the most-disputed claim to pin.
+ * @param {Array<{lean?: string}>} sources - Combined supporting + contradicting sources.
+ * @returns {number} Span value in [0, 4]; 0 if no rated sources.
+ */
 function leanSpan(sources) {
   const positions = new Set(
     (sources || []).map((s) => s.lean).filter((l) => LEAN_ORDER.includes(l))
@@ -772,6 +1048,10 @@ function leanSpan(sources) {
   return Math.max(...indices) - Math.min(...indices);
 }
 
+/**
+ * Identifies the claim with the most contradicting sources (breaking ties by lean span),
+ * marks it with a "most disputed" badge, and moves its card to the top of the list.
+ */
 function pinMostDisputed() {
   if (collectedResults.length === 0) return;
 
@@ -786,10 +1066,7 @@ function pinMostDisputed() {
   );
 
   const winner = candidates.reduce((best, r) => {
-    const span = leanSpan([
-      ...(r.supporting_sources || []),
-      ...(r.contradicting_sources || []),
-    ]);
+    const span = leanSpan([...(r.supporting_sources || []), ...(r.contradicting_sources || [])]);
     const bestSpan = leanSpan([
       ...(best.supporting_sources || []),
       ...(best.contradicting_sources || []),
@@ -813,18 +1090,36 @@ function pinMostDisputed() {
 
 // ---- Selection popup --------------------------------------------------------
 
+/**
+ * Displays the text-selection popup with a truncated preview of the selected text.
+ * @param {string} text - The selected text to preview and optionally fact-check.
+ */
 function showSelectionPopup(text) {
   pendingSelectionText = text;
-  const preview = text.length > 140 ? text.slice(0, 140) + "…" : text;
+  let preview;
+  if (text.length > 140) {
+    preview = text.slice(0, 140) + "…";
+  } else {
+    preview = text;
+  }
   document.getElementById("selection-preview").textContent = `"${preview}"`;
   selectionPopup.classList.remove("hidden");
 }
 
+/**
+ * Hides the text-selection popup and clears the pending selection text.
+ */
 function hideSelectionPopup() {
   selectionPopup.classList.add("hidden");
   pendingSelectionText = "";
 }
 
+/**
+ * Fact-checks a single user-selected claim via the /api/check-claim endpoint.
+ * If the claim is already in the results list, it just opens that card instead of re-fetching.
+ * @param {string} claimText - The selected text to fact-check.
+ * @returns {Promise<void>}
+ */
 async function checkSingleClaim(claimText) {
   if (claimCardByText.has(claimText)) {
     claimCardByText.get(claimText).classList.add("is-open");
@@ -909,6 +1204,13 @@ document.getElementById("export-pdf-btn").addEventListener("click", () => {
 
 // settings panel
 
+/**
+ * Creates a settings row containing a label and an ARIA switch toggle button.
+ * @param {string} labelText - Display text for the setting label.
+ * @param {boolean} checked - Initial on/off state of the toggle.
+ * @param {(value: boolean) => void} onChange - Callback invoked with the new state on click.
+ * @returns {HTMLDivElement}
+ */
 function makeToggleRow(labelText, checked, onChange) {
   const row = document.createElement("div");
   row.className = "settings-row";
@@ -929,6 +1231,14 @@ function makeToggleRow(labelText, checked, onChange) {
   return row;
 }
 
+/**
+ * Creates a settings row containing a label and a <select> dropdown.
+ * @param {string} labelText - Display text for the setting label.
+ * @param {Array<{value: string, label: string}>} options - Select options.
+ * @param {string} value - The currently selected option value.
+ * @param {(value: string) => void} onChange - Callback invoked with the new value on change.
+ * @returns {HTMLDivElement}
+ */
 function makeSelectRow(labelText, options, value, onChange) {
   const row = document.createElement("div");
   row.className = "settings-row";
@@ -949,6 +1259,15 @@ function makeSelectRow(labelText, options, value, onChange) {
   return row;
 }
 
+/**
+ * Creates a domain list management block with an add-input and remove buttons for each entry.
+ * Mutations are reflected immediately in the rendered list and delegated to onAdd/onRemove.
+ * @param {string} title - Section title (e.g. "Always analyze (whitelist)").
+ * @param {string[]} list - The mutable domain list to display and manage.
+ * @param {(domain: string) => void} onAdd - Called when a valid new domain is added.
+ * @param {(domain: string) => void} onRemove - Called when a domain is removed.
+ * @returns {HTMLDivElement}
+ */
 function makeDomainListBlock(title, list, onAdd, onRemove) {
   const wrapper = document.createElement("div");
   wrapper.className = "settings-domain-group";
@@ -971,6 +1290,7 @@ function makeDomainListBlock(title, list, onAdd, onRemove) {
   const listEl = document.createElement("ul");
   listEl.className = "settings-domain-list";
 
+  /** Re-renders the domain list <ul> from the current list array. */
   function renderList() {
     listEl.innerHTML = "";
     for (const domain of list) {
@@ -981,7 +1301,10 @@ function makeDomainListBlock(title, list, onAdd, onRemove) {
       const removeBtn = document.createElement("button");
       removeBtn.className = "settings-domain-remove";
       removeBtn.textContent = "×";
-      removeBtn.addEventListener("click", () => { onRemove(domain); renderList(); });
+      removeBtn.addEventListener("click", () => {
+        onRemove(domain);
+        renderList();
+      });
       li.append(span, removeBtn);
       listEl.appendChild(li);
     }
@@ -995,7 +1318,9 @@ function makeDomainListBlock(title, list, onAdd, onRemove) {
       renderList();
     }
   });
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") addBtn.click(); });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addBtn.click();
+  });
 
   inputRow.append(input, addBtn);
   wrapper.append(inputRow, listEl);
@@ -1003,56 +1328,86 @@ function makeDomainListBlock(title, list, onAdd, onRemove) {
   return wrapper;
 }
 
+/**
+ * Rebuilds and renders the full settings panel into settingsContentEl.
+ * Called each time the settings view is opened to reflect current values.
+ */
 function renderSettingsView() {
   settingsContentEl.innerHTML = "";
 
   const analysisSection = makeSettingsSection("Analysis");
   const claimCountOptions = [
     { value: "auto", label: "Auto" },
-    ...Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: `${i + 1} claim${i === 0 ? "" : "s"}` })),
+    ...Array.from({ length: 10 }, (_, i) => ({
+      value: String(i + 1),
+      label: `${i + 1} claim${i === 0 ? "" : "s"}`,
+    })),
   ];
-  analysisSection.appendChild(makeSelectRow(
-    "Claims per article",
-    claimCountOptions,
-    String(currentSettings.claimCount),
-    (v) => saveSettings({ claimCount: v === "auto" ? "auto" : Number(v) })
-  ));
-  analysisSection.appendChild(makeToggleRow(
-    "Auto-analyze on page load",
-    currentSettings.autoAnalyze,
-    (v) => saveSettings({ autoAnalyze: v })
-  ));
+  analysisSection.appendChild(
+    makeSelectRow(
+      "Claims per article",
+      claimCountOptions,
+      String(currentSettings.claimCount),
+      (v) => saveSettings({ claimCount: v === "auto" ? "auto" : Number(v) })
+    )
+  );
+  analysisSection.appendChild(
+    makeToggleRow("Auto-analyze on page load", currentSettings.autoAnalyze, (v) =>
+      saveSettings({ autoAnalyze: v })
+    )
+  );
 
   const displaySection = makeSettingsSection("Display");
-  displaySection.appendChild(makeToggleRow(
-    "Show political lean labels",
-    currentSettings.showLeanLabels,
-    (v) => saveSettings({ showLeanLabels: v })
-  ));
-  displaySection.appendChild(makeSelectRow(
-    "Show claims",
-    [
-      { value: "all", label: "All claims" },
-      { value: "below_high", label: "Medium & Low only" },
-      { value: "below_medium", label: "Low only" },
-    ],
-    currentSettings.confidenceFilter,
-    (v) => { saveSettings({ confidenceFilter: v }); applyConfidenceFilter(); }
-  ));
+  displaySection.appendChild(
+    makeToggleRow("Show political lean labels", currentSettings.showLeanLabels, (v) =>
+      saveSettings({ showLeanLabels: v })
+    )
+  );
+  displaySection.appendChild(
+    makeSelectRow(
+      "Show claims",
+      [
+        { value: "all", label: "All claims" },
+        { value: "below_high", label: "Medium & Low only" },
+        { value: "below_medium", label: "Low only" },
+      ],
+      currentSettings.confidenceFilter,
+      (v) => {
+        saveSettings({ confidenceFilter: v });
+        applyConfidenceFilter();
+      }
+    )
+  );
 
   const domainSection = makeSettingsSection("Domains");
-  domainSection.appendChild(makeDomainListBlock(
-    "Always analyze (whitelist)",
-    domainWhitelist,
-    (d) => { domainWhitelist.push(d); saveDomainLists(); },
-    (d) => { domainWhitelist = domainWhitelist.filter((x) => x !== d); saveDomainLists(); }
-  ));
-  domainSection.appendChild(makeDomainListBlock(
-    "Never analyze (blacklist)",
-    domainBlacklist,
-    (d) => { domainBlacklist.push(d); saveDomainLists(); },
-    (d) => { domainBlacklist = domainBlacklist.filter((x) => x !== d); saveDomainLists(); }
-  ));
+  domainSection.appendChild(
+    makeDomainListBlock(
+      "Always analyze (whitelist)",
+      domainWhitelist,
+      (d) => {
+        domainWhitelist.push(d);
+        saveDomainLists();
+      },
+      (d) => {
+        domainWhitelist = domainWhitelist.filter((x) => x !== d);
+        saveDomainLists();
+      }
+    )
+  );
+  domainSection.appendChild(
+    makeDomainListBlock(
+      "Never analyze (blacklist)",
+      domainBlacklist,
+      (d) => {
+        domainBlacklist.push(d);
+        saveDomainLists();
+      },
+      (d) => {
+        domainBlacklist = domainBlacklist.filter((x) => x !== d);
+        saveDomainLists();
+      }
+    )
+  );
 
   settingsContentEl.append(analysisSection, displaySection, domainSection);
 }
@@ -1069,6 +1424,10 @@ settingsBackBtn.addEventListener("click", () => showState(previousState));
 
 // ---- History view (Feature 4) -----------------------------------------------
 
+/**
+ * Renders the article history list into historyContentEl.
+ * Shows a placeholder message when history is empty.
+ */
 function renderHistoryView() {
   historyContentEl.innerHTML = "";
 
@@ -1100,10 +1459,18 @@ function renderHistoryView() {
     const dateEl = document.createElement("span");
     dateEl.className = "history-item__date";
     dateEl.textContent = new Date(entry.timestamp).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
-    const scoreLabel = entry.credibilityScore >= 75 ? "high"
-      : entry.credibilityScore >= 40 ? "medium" : "low";
+    let scoreLabel;
+    if (entry.credibilityScore >= 75) {
+      scoreLabel = "high";
+    } else if (entry.credibilityScore >= 40) {
+      scoreLabel = "medium";
+    } else {
+      scoreLabel = "low";
+    }
     const scoreBadge = document.createElement("span");
     scoreBadge.className = `confidence-badge confidence-badge--${scoreLabel}`;
     scoreBadge.textContent = `${entry.credibilityScore}%`;
@@ -1142,6 +1509,12 @@ historyBackBtn.addEventListener("click", () => showState(previousState));
 
 // ---- SSE stream -------------------------------------------------------------
 
+/**
+ * Async generator that reads an SSE response body and yields parsed {event, data} frames.
+ * Handles chunked delivery by buffering until a double-newline frame delimiter appears.
+ * @param {Response} response - Fetch Response with a readable body stream.
+ * @yields {{event: string, data: unknown}} Parsed SSE frames.
+ */
 async function* readSseStream(response) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -1160,11 +1533,23 @@ async function* readSseStream(response) {
         if (line.startsWith("event: ")) event = line.slice(7).trim();
         else if (line.startsWith("data: ")) data += line.slice(6);
       }
-      if (data) yield { event, data: JSON.parse(data) };
+      if (data) {
+        const parsed = JSON.parse(data);
+        yield { event, data: parsed };
+      }
     }
   }
 }
 
+/**
+ * Posts the article to /api/analyze and processes the SSE stream, updating the UI
+ * for each event (volatility, claims, claim_result, claim_error, done, fatal_error).
+ * @param {string} articleText - Full article body to analyze.
+ * @param {string} [articleTitle=""] - Article headline used for volatility classification.
+ * @param {number|"auto"} [claimCount=5] - Desired claim count.
+ * @returns {Promise<void>}
+ * @throws {Error} On HTTP error or fatal_error SSE event.
+ */
 async function streamAnalysis(articleText, articleTitle = "", claimCount = 5) {
   const response = await fetch(`${API_BASE_URL}/api/analyze`, {
     method: "POST",
@@ -1214,7 +1599,12 @@ async function streamAnalysis(articleText, articleTitle = "", claimCount = 5) {
       case "done":
         if (collectedResults.length > 0) {
           const elapsedSeconds = Math.round((Date.now() - analyzeStartTime) / 1000);
-          const wordCount = currentArticle?.text ? currentArticle.text.trim().split(/\s+/).length : 0;
+          let wordCount;
+          if (currentArticle?.text) {
+            wordCount = currentArticle.text.trim().split(/\s+/).length;
+          } else {
+            wordCount = 0;
+          }
           if (wordCount > 0) renderReadingTimeStat(wordCount, elapsedSeconds);
           pinMostDisputed();
           shareRowEl.classList.remove("hidden");
@@ -1227,6 +1617,12 @@ async function streamAnalysis(articleText, articleTitle = "", claimCount = 5) {
 
 // ---- Entry points -----------------------------------------------------------
 
+/**
+ * Top-level entry point for a full article analysis run.
+ * Extracts article text from the active tab, then streams analysis results.
+ * Transitions the UI through loading → results (or error) states.
+ * @returns {Promise<void>}
+ */
 async function analyzeCurrentPage() {
   analyzeStartTime = Date.now();
   showState("loading");
@@ -1255,6 +1651,12 @@ retryBtn.addEventListener("click", analyzeCurrentPage);
 
 // ---- Init -------------------------------------------------------------------
 
+/**
+ * Initializes the sidebar: loads settings, domain lists, and history in parallel,
+ * then auto-analyzes if the active tab is whitelisted or auto-analyze is enabled.
+ * Falls through to the idle state for restricted pages (chrome://, etc.).
+ * @returns {Promise<void>}
+ */
 async function init() {
   await Promise.all([loadSettings(), loadDomainLists(), loadHistory()]);
 

@@ -1,11 +1,25 @@
+/**
+ * Concatenates the trimmed innerText of all <p> descendants of root.
+ * @param {Element} root - DOM element to search within.
+ * @returns {string} Paragraph text joined by double newlines.
+ */
 function collectParagraphText(root) {
   const paragraphs = root.querySelectorAll("p");
   return Array.from(paragraphs)
-    .map((p) => p.innerText.trim())
-    .filter((t) => t.length > 0)
+    .map((p) => {
+      return p.innerText.trim();
+    })
+    .filter((t) => {
+      return t.length > 0;
+    })
     .join("\n\n");
 }
 
+/**
+ * Heuristically locates the main article container in the current document.
+ * Prefers a semantic <article> element; falls back to the block with the most paragraph text.
+ * @returns {Element} The best-match container element.
+ */
 function findArticleContainer() {
   const article = document.querySelector("article");
   if (article && collectParagraphText(article).length > 200) return article;
@@ -22,12 +36,17 @@ function findArticleContainer() {
   return best;
 }
 
+/**
+ * Collects the current page's URL, title, and extracted article text.
+ * @returns {{url: string, title: string, text: string}}
+ */
 function getArticleMetadata() {
-  return {
+  const metadata = {
     url: window.location.href,
     title: document.title,
     text: collectParagraphText(findArticleContainer()),
   };
+  return metadata;
 }
 
 // ---- Highlight infrastructure -----------------------------------------------
@@ -46,27 +65,86 @@ document.head.appendChild(highlightStyle);
 
 // Words too common to be useful for matching
 const STOP_WORDS = new Set([
-  "that", "this", "with", "have", "from", "they", "been", "said", "will",
-  "would", "could", "should", "their", "there", "about", "after", "before",
-  "when", "where", "which", "were", "what", "into", "also", "more", "than",
-  "some", "each", "such", "both", "then", "over", "only", "most", "other",
-  "very", "just", "even", "much", "many", "time", "year", "years", "says",
-  "according", "percent", "people", "those", "while", "through", "state",
-  "government", "president", "official", "officials", "told", "during",
+  "that",
+  "this",
+  "with",
+  "have",
+  "from",
+  "they",
+  "been",
+  "said",
+  "will",
+  "would",
+  "could",
+  "should",
+  "their",
+  "there",
+  "about",
+  "after",
+  "before",
+  "when",
+  "where",
+  "which",
+  "were",
+  "what",
+  "into",
+  "also",
+  "more",
+  "than",
+  "some",
+  "each",
+  "such",
+  "both",
+  "then",
+  "over",
+  "only",
+  "most",
+  "other",
+  "very",
+  "just",
+  "even",
+  "much",
+  "many",
+  "time",
+  "year",
+  "years",
+  "says",
+  "according",
+  "percent",
+  "people",
+  "those",
+  "while",
+  "through",
+  "state",
+  "government",
+  "president",
+  "official",
+  "officials",
+  "told",
+  "during",
 ]);
 
+/**
+ * Returns the set of non-stop words (≥4 letters) from the given text, lowercased.
+ * @param {string} text - Input text to tokenize.
+ * @returns {Set<string>} Unique significant word tokens.
+ */
 function significantWords(text) {
-  return new Set(
-    (text.toLowerCase().match(/\b[a-z]{4,}\b/g) || []).filter(
-      (w) => !STOP_WORDS.has(w)
-    )
-  );
+  const allWords = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+  const filtered = allWords.filter((w) => {
+    return !STOP_WORDS.has(w);
+  });
+  return new Set(filtered);
 }
 
 // Lazily populated: claim text → best-matching <p> element (or null)
 const claimParagraphMap = new Map();
 let articleParagraphs = null;
 
+/**
+ * Lazily retrieves and caches the list of substantive (>40-char) <p> elements in the article.
+ * @returns {Element[]} Array of paragraph elements.
+ */
 function getArticleParagraphs() {
   if (articleParagraphs) return articleParagraphs;
   const container = findArticleContainer();
@@ -76,6 +154,12 @@ function getArticleParagraphs() {
   return articleParagraphs;
 }
 
+/**
+ * Finds the article paragraph that best matches the claim by keyword overlap score.
+ * Returns null if no paragraph meets the 0.25 minimum overlap threshold.
+ * @param {string} claimText - Claim text to match against article paragraphs.
+ * @returns {Element|null} Best-matching paragraph element, or null.
+ */
 function findBestParagraph(claimText) {
   const words = significantWords(claimText);
   if (words.size === 0) return null;
@@ -99,6 +183,11 @@ function findBestParagraph(claimText) {
 
 let currentHighlighted = null;
 
+/**
+ * Applies the veritas-highlight CSS class to the paragraph best matching claimText
+ * and scrolls it into view. Clears any previously highlighted paragraph first.
+ * @param {string} claimText - Claim text used to locate the target paragraph.
+ */
 function highlightClaim(claimText) {
   clearHighlight();
 
@@ -115,6 +204,9 @@ function highlightClaim(claimText) {
   }
 }
 
+/**
+ * Removes the veritas-highlight class from the currently highlighted paragraph, if any.
+ */
 function clearHighlight() {
   if (currentHighlighted) {
     currentHighlighted.classList.remove("veritas-highlight");
@@ -154,4 +246,3 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   return true; // keep the message channel open for async sendResponse
 });
-

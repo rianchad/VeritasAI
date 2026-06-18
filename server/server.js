@@ -22,8 +22,8 @@ db.exec(`
 const SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const stmtInsert = db.prepare("INSERT INTO shares (id, data, expires_at) VALUES (?, ?, ?)");
-const stmtGet    = db.prepare("SELECT data, expires_at FROM shares WHERE id = ?");
-const stmtPrune  = db.prepare("DELETE FROM shares WHERE expires_at < ?");
+const stmtGet = db.prepare("SELECT data, expires_at FROM shares WHERE id = ?");
+const stmtPrune = db.prepare("DELETE FROM shares WHERE expires_at < ?");
 
 stmtPrune.run(Date.now());
 setInterval(() => stmtPrune.run(Date.now()), 60 * 60 * 1000);
@@ -53,14 +53,18 @@ app.use(express.json({ limit: "1mb" }));
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => {
+    return origin.trim();
+  })
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
-  })
-);
+let corsOrigin;
+if (allowedOrigins.length > 0) {
+  corsOrigin = allowedOrigins;
+} else {
+  corsOrigin = true;
+}
+app.use(cors({ origin: corsOrigin }));
 
 app.get("/health", (req, res) => {
   res.json({ ok: true });
@@ -77,9 +81,12 @@ app.post("/api/check-claim", async (req, res) => {
   if (typeof claim !== "string" || claim.trim().length < 10) {
     return res.status(400).json({ error: "claim must be at least 10 characters." });
   }
-  const safeVolatility = ["breaking", "developing", "stable"].includes(volatility)
-    ? volatility
-    : "stable";
+  let safeVolatility;
+  if (["breaking", "developing", "stable"].includes(volatility)) {
+    safeVolatility = volatility;
+  } else {
+    safeVolatility = "stable";
+  }
   try {
     // User-selected text has no extracted context — pass null and let the
     // pipeline use the claim itself as the search query.
@@ -95,8 +102,14 @@ app.post("/api/check-claim", async (req, res) => {
 app.post("/api/analyze", analyzeLimiter, async (req, res) => {
   const { articleText, articleTitle = "", claimCount } = req.body || {};
   const n = Number(claimCount);
-  const safeClaimCount = claimCount === "auto" ? "auto"
-    : (Number.isInteger(n) && n >= 1 && n <= 10) ? n : 5;
+  let safeClaimCount;
+  if (claimCount === "auto") {
+    safeClaimCount = "auto";
+  } else if (Number.isInteger(n) && n >= 1 && n <= 10) {
+    safeClaimCount = n;
+  } else {
+    safeClaimCount = 5;
+  }
   if (typeof articleText !== "string" || articleText.trim().length < 200) {
     return res.status(400).json({ error: "articleText must be at least 200 characters." });
   }
@@ -107,6 +120,11 @@ app.post("/api/analyze", analyzeLimiter, async (req, res) => {
     Connection: "keep-alive",
   });
 
+  /**
+   * Writes a single SSE frame to the response stream.
+   * @param {string} event - SSE event name.
+   * @param {object} data - Payload serialized as JSON in the data field.
+   */
   const send = (event, data) => {
     res.write(`event: ${event}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -149,95 +167,200 @@ app.post("/api/share", shareLimiter, (req, res) => {
   }
 
   const id = crypto.randomUUID();
+
+  let safeArticleUrl;
+  if (typeof articleUrl === "string") {
+    safeArticleUrl = articleUrl;
+  } else {
+    safeArticleUrl = "";
+  }
+
+  let safeArticleTitle;
+  if (typeof articleTitle === "string") {
+    safeArticleTitle = articleTitle;
+  } else {
+    safeArticleTitle = "Untitled article";
+  }
+
   const data = JSON.stringify({
-    articleUrl: typeof articleUrl === "string" ? articleUrl : "",
-    articleTitle: typeof articleTitle === "string" ? articleTitle : "Untitled article",
+    articleUrl: safeArticleUrl,
+    articleTitle: safeArticleTitle,
     results,
   });
   stmtInsert.run(id, data, Date.now() + SHARE_TTL_MS);
 
-  const base = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 8787}`;
-  res.json({ shareUrl: `${base}/share/${id}` });
+  let baseUrl;
+  if (process.env.PUBLIC_URL) {
+    baseUrl = process.env.PUBLIC_URL;
+  } else {
+    const port = process.env.PORT || 8787;
+    baseUrl = `http://localhost:${port}`;
+  }
+  res.json({ shareUrl: `${baseUrl}/share/${id}` });
 });
 
 // Renders a read-only fact-check results page (no extension required).
 app.get("/share/:id", (req, res) => {
   const row = stmtGet.get(req.params.id);
   if (!row || row.expires_at < Date.now()) {
-    return res.status(410).send("<h1>Link expired or not found</h1><p>Shared fact-checks expire after 7 days.</p>");
+    return res
+      .status(410)
+      .send("<h1>Link expired or not found</h1><p>Shared fact-checks expire after 7 days.</p>");
   }
 
   const { articleUrl, articleTitle, results } = JSON.parse(row.data);
   const expiresDate = new Date(row.expires_at).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 
   const CONF_VALUES = { high: 1.0, medium: 0.5, low: 0.0 };
   const scored = results.filter((r) => r.confidence in CONF_VALUES);
-  const avgScore = scored.length
-    ? scored.reduce((sum, r) => sum + CONF_VALUES[r.confidence], 0) / scored.length
-    : null;
-  const avgPct = avgScore !== null ? Math.round(avgScore * 100) : null;
-  const avgLabel = avgScore === null ? null : avgScore >= 0.75 ? "high" : avgScore >= 0.4 ? "medium" : "low";
 
+  let avgScore;
+  if (scored.length > 0) {
+    avgScore = scored.reduce((sum, r) => sum + CONF_VALUES[r.confidence], 0) / scored.length;
+  } else {
+    avgScore = null;
+  }
+
+  let avgPct;
+  if (avgScore !== null) {
+    avgPct = Math.round(avgScore * 100);
+  } else {
+    avgPct = null;
+  }
+
+  let avgLabel;
+  if (avgScore === null) {
+    avgLabel = null;
+  } else if (avgScore >= 0.75) {
+    avgLabel = "high";
+  } else if (avgScore >= 0.4) {
+    avgLabel = "medium";
+  } else {
+    avgLabel = "low";
+  }
+
+  /**
+   * Escapes special HTML characters to prevent XSS in rendered output.
+   * @param {*} str - Value to escape (coerced to string).
+   * @returns {string} HTML-safe string.
+   */
   function escHtml(str) {
     return String(str || "")
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
 
   // Allow only http/https in href attributes — javascript: and data: URLs
   // survive escHtml() and execute as protocol handlers when clicked.
+  /**
+   * Validates a URL and returns it only if the protocol is http or https.
+   * @param {*} url - URL string to validate.
+   * @returns {string} The original URL or "about:blank" if invalid or unsafe.
+   */
   function safeUrl(url) {
     try {
       const { protocol } = new URL(String(url || ""));
-      return (protocol === "http:" || protocol === "https:") ? url : "about:blank";
+      if (protocol === "http:" || protocol === "https:") {
+        return url;
+      }
+      return "about:blank";
     } catch {
       return "about:blank";
     }
   }
 
+  /**
+   * Renders an HTML source list for a given label and source array.
+   * @param {string} label - Section heading text (e.g. "Supporting sources").
+   * @param {Array<{outlet?: string, lean?: string, age?: string, title?: string, url: string}>} sources
+   * @returns {string} HTML fragment, or empty string if sources is empty.
+   */
   function renderSources(label, sources) {
-    if (!sources || sources.length === 0) return "";
-    const items = sources.map((s) => {
-      const metaParts = [s.outlet, s.lean, s.age].filter(Boolean).join(" · ");
-      const titleHtml = s.title ? escHtml(s.title) : escHtml(s.url);
-      const metaHtml = metaParts ? `<span class="source-meta">${escHtml(metaParts)}</span>` : "";
-      return `<li><a href="${escHtml(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${titleHtml}</a>${metaHtml}</li>`;
-    }).join("");
+    if (!sources || sources.length === 0) {
+      return "";
+    }
+    const items = sources
+      .map((s) => {
+        const metaParts = [s.outlet, s.lean, s.age].filter(Boolean).join(" · ");
+        let titleHtml;
+        if (s.title) {
+          titleHtml = escHtml(s.title);
+        } else {
+          titleHtml = escHtml(s.url);
+        }
+        let metaHtml;
+        if (metaParts) {
+          metaHtml = `<span class="source-meta">${escHtml(metaParts)}</span>`;
+        } else {
+          metaHtml = "";
+        }
+        return `<li><a href="${escHtml(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${titleHtml}</a>${metaHtml}</li>`;
+      })
+      .join("");
     return `<p class="section-heading">${escHtml(label)}</p><ul class="source-list">${items}</ul>`;
   }
 
-  const claimsHtml = results.map((r) => {
-    const conf = ["high", "medium", "low"].includes(r.confidence) ? r.confidence : "low";
-    const rationale = r.confidence_rationale
-      ? `<p class="rationale">${escHtml(r.confidence_rationale)}</p>` : "";
-
-    let blindspot = "";
-    const knownLeans = (r.supporting_sources || [])
-      .map((s) => s.lean)
-      .filter((l) => l && l !== "Unrated" && l !== "Center");
-    if (knownLeans.length >= 3) {
-      const leftSet = new Set(["Left", "Lean Left"]);
-      const rightSet = new Set(["Right", "Lean Right"]);
-      const side = knownLeans.every((l) => leftSet.has(l)) ? "Left"
-        : knownLeans.every((l) => rightSet.has(l)) ? "Right" : null;
-      if (side) {
-        blindspot = `<div class="blindspot-warning">All supporting sources are ${escHtml(side)}-leaning — no opposing perspective found.</div>`;
+  const claimsHtml = results
+    .map((r) => {
+      let conf;
+      if (["high", "medium", "low"].includes(r.confidence)) {
+        conf = r.confidence;
+      } else {
+        conf = "low";
       }
-    }
 
-    let divergence = "";
-    if (r.divergence_summary && r.divergence_summary !== "No notable divergence found") {
-      const positions = Array.isArray(r.outlet_positions) && r.outlet_positions.length
-        ? `<ul class="source-list">${r.outlet_positions.map((p) =>
-            `<li><span class="source-meta">${escHtml(p.outlet)} · ${escHtml(p.lean)}</span>${escHtml(p.position)}</li>`
-          ).join("")}</ul>`
-        : "";
-      divergence = `<p class="section-heading">Coverage divergence</p><p class="rationale">${escHtml(r.divergence_summary)}</p>${positions}`;
-    }
+      let rationale;
+      if (r.confidence_rationale) {
+        rationale = `<p class="rationale">${escHtml(r.confidence_rationale)}</p>`;
+      } else {
+        rationale = "";
+      }
 
-    return `
+      let blindspot = "";
+      const knownLeans = (r.supporting_sources || [])
+        .map((s) => {
+          return s.lean;
+        })
+        .filter((l) => l && l !== "Unrated" && l !== "Center");
+      if (knownLeans.length >= 3) {
+        const leftSet = new Set(["Left", "Lean Left"]);
+        const rightSet = new Set(["Right", "Lean Right"]);
+        let side;
+        if (knownLeans.every((l) => leftSet.has(l))) {
+          side = "Left";
+        } else if (knownLeans.every((l) => rightSet.has(l))) {
+          side = "Right";
+        } else {
+          side = null;
+        }
+        if (side) {
+          blindspot = `<div class="blindspot-warning">All supporting sources are ${escHtml(side)}-leaning — no opposing perspective found.</div>`;
+        }
+      }
+
+      let divergence = "";
+      if (r.divergence_summary && r.divergence_summary !== "No notable divergence found") {
+        let positions;
+        if (Array.isArray(r.outlet_positions) && r.outlet_positions.length > 0) {
+          const positionItems = r.outlet_positions
+            .map((p) => {
+              return `<li><span class="source-meta">${escHtml(p.outlet)} · ${escHtml(p.lean)}</span>${escHtml(p.position)}</li>`;
+            })
+            .join("");
+          positions = `<ul class="source-list">${positionItems}</ul>`;
+        } else {
+          positions = "";
+        }
+        divergence = `<p class="section-heading">Coverage divergence</p><p class="rationale">${escHtml(r.divergence_summary)}</p>${positions}`;
+      }
+
+      return `
 <li class="claim-card claim-card--${conf}">
   <div class="claim-header">
     <div class="claim-meta"><span class="badge badge--${conf}">${conf.toUpperCase()}</span></div>
@@ -251,9 +374,12 @@ app.get("/share/:id", (req, res) => {
     ${divergence}
   </div>
 </li>`;
-  }).join("");
+    })
+    .join("");
 
-  const scoreBar = avgPct !== null ? `
+  let scoreBar;
+  if (avgPct !== null) {
+    scoreBar = `
 <div class="score-bar">
   <div class="score-bar__header">
     <span class="score-bar__label">Credibility Index</span>
@@ -263,7 +389,10 @@ app.get("/share/:id", (req, res) => {
     <div class="score-bar__fill score-bar__fill--${avgLabel}" style="width:${avgPct}%"></div>
     <div class="score-bar__ticks"><span></span><span></span><span></span><span></span></div>
   </div>
-</div>` : "";
+</div>`;
+  } else {
+    scoreBar = "";
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
