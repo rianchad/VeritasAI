@@ -200,6 +200,21 @@ function getLean(url) {
 }
 
 /**
+ * Collapses a fine-grained lean label ("Lean Left", "Left", etc.) into a
+ * coarse Left/Center/Right bucket, useful for spectrum-diversity scoring
+ * where "Lean Left" and "Left" should count as the same side.
+ * @param {string} url - Absolute URL of a source.
+ * @returns {"Left"|"Center"|"Right"|"Unrated"} Coarse lean bucket.
+ */
+function getLeanCategory(url) {
+  const lean = getLean(url);
+  if (lean.endsWith("Left")) return "Left";
+  if (lean.endsWith("Right")) return "Right";
+  if (lean === "Center") return "Center";
+  return "Unrated";
+}
+
+/**
  * Returns true if the URL's domain qualifies as a primary source
  * (government, official wire dispatch, or academic institution).
  * @param {string} url - Absolute URL to check.
@@ -212,4 +227,4 @@ function isPrimarySource(url) {
   );
 }
 
-module.exports = { getDomain, getLean, isPrimarySource };
+module.exports = { getDomain, getLean, getLeanCategory, isPrimarySource };
