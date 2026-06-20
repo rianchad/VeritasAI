@@ -754,6 +754,18 @@ function getOutletData(outletName) {
  * @param {string} outletName - Outlet name as returned by the server.
  * @returns {"Left"|"Right"|"Center"|"Unrated"}
  */
+/**
+ * Returns a human-readable label for an outlet's credibility tier, falling
+ * back to a generic "Tier N" string if the tier isn't in TIER_LABELS.
+ * @param {string} outletName - Outlet name as returned by the server.
+ * @returns {string|null} Tier label, or null if the outlet is unknown.
+ */
+function getTierLabel(outletName) {
+  const data = getOutletData(outletName);
+  if (!data) return null;
+  return TIER_LABELS[data.tier] || `Tier ${data.tier}`;
+}
+
 function getLeanCategory(outletName) {
   const data = getOutletData(outletName);
   const lean = data ? data.lean : null;

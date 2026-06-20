@@ -991,7 +991,7 @@ function showCredibilityCard(outletName, anchorEl) {
 
     const tierEl = document.createElement("p");
     tierEl.className = "credibility-hover-card__row";
-    tierEl.textContent = TIER_LABELS[data.tier] || `Tier ${data.tier}`;
+    tierEl.textContent = getTierLabel(outletName);
     card.appendChild(tierEl);
 
     if (data.allSides) {
