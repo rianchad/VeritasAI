@@ -775,3 +775,28 @@ function getLeanCategory(outletName) {
   if (lean === "Center") return "Center";
   return "Unrated";
 }
+
+/**
+ * Maps a lean category to the CSS class used for its colored badge/dot in
+ * the credibility hover card, so callers don't need to hardcode the mapping.
+ * @param {string} outletName - Outlet name as returned by the server.
+ * @returns {"lean-badge--left"|"lean-badge--right"|"lean-badge--center"|"lean-badge--unrated"}
+ */
+function getLeanBadgeClass(outletName) {
+  const category = getLeanCategory(outletName);
+  return `lean-badge--${category.toLowerCase()}`;
+}
+
+/**
+ * Returns a short list of all known outlet display-name aliases that share
+ * the given tier, useful for building tier-filtered outlet pickers.
+ * @param {number} tier - Tier number (1, 2, or 3).
+ * @returns {string[]} Outlet names (as stored, lowercase) belonging to that tier.
+ */
+function getOutletsByTier(tier) {
+  const names = [];
+  for (const [name, data] of OUTLET_DATA) {
+    if (data.tier === tier) names.push(name);
+  }
+  return names;
+}

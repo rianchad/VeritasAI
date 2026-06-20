@@ -1180,6 +1180,32 @@ body {
   line-height: 1.4;
 }
 
+.lean-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.lean-badge--left {
+  background: #5b8cff;
+}
+
+.lean-badge--right {
+  background: #ff6b5b;
+}
+
+.lean-badge--center {
+  background: #9b9b9b;
+}
+
+.lean-badge--unrated {
+  background: transparent;
+  border: 1px solid var(--text-muted);
+}
+
 .credibility-hover-card__desc {
   font-family: var(--font-sans);
   font-size: 11px;

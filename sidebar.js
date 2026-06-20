@@ -986,7 +986,12 @@ function showCredibilityCard(outletName, anchorEl) {
   if (data) {
     const leanEl = document.createElement("p");
     leanEl.className = "credibility-hover-card__row";
-    leanEl.textContent = `Lean: ${data.lean}`;
+
+    const leanDot = document.createElement("span");
+    leanDot.className = `lean-badge ${getLeanBadgeClass(outletName)}`;
+    leanEl.appendChild(leanDot);
+    leanEl.appendChild(document.createTextNode(`Lean: ${data.lean}`));
+
     card.appendChild(leanEl);
 
     const tierEl = document.createElement("p");
