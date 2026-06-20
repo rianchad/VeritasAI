@@ -227,4 +227,15 @@ function isPrimarySource(url) {
   );
 }
 
-module.exports = { getDomain, getLean, getLeanCategory, isPrimarySource };
+/**
+ * Returns true if the URL's domain has a known lean rating, as opposed to
+ * falling back to "Unrated". Useful for filtering spectrum-diversity scoring
+ * to outlets we actually have data on.
+ * @param {string} url - Absolute URL of a source.
+ * @returns {boolean}
+ */
+function isRatedSource(url) {
+  return getLean(url) !== "Unrated";
+}
+
+module.exports = { getDomain, getLean, getLeanCategory, isPrimarySource, isRatedSource };
