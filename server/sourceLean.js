@@ -238,4 +238,29 @@ function isRatedSource(url) {
   return getLean(url) !== "Unrated";
 }
 
-module.exports = { getDomain, getLean, getLeanCategory, isPrimarySource, isRatedSource };
+/**
+ * Returns every domain in LEAN_BY_DOMAIN whose coarse lean category matches
+ * the given bucket, e.g. for building a spectrum-diversity test fixture or
+ * auditing how many outlets fall on each side. Mirrors the client-side
+ * getOutletsByTier helper in sourceLean.js.
+ * @param {"Left"|"Center"|"Right"} category - Coarse lean bucket to filter by.
+ * @returns {string[]} Domains whose getLeanCategory matches.
+ */
+function getDomainsByLean(category) {
+  return Object.keys(LEAN_BY_DOMAIN).filter((domain) => {
+    const lean = LEAN_BY_DOMAIN[domain];
+    if (category === "Left") return lean.endsWith("Left");
+    if (category === "Right") return lean.endsWith("Right");
+    if (category === "Center") return lean === "Center";
+    return false;
+  });
+}
+
+module.exports = {
+  getDomain,
+  getLean,
+  getLeanCategory,
+  isPrimarySource,
+  isRatedSource,
+  getDomainsByLean,
+};

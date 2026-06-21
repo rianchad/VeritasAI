@@ -800,3 +800,19 @@ function getOutletsByTier(tier) {
   }
   return names;
 }
+
+/**
+ * Returns every known outlet display-name alias whose coarse lean category
+ * matches the given bucket, mirroring getOutletsByTier above and
+ * server/sourceLean.js's getDomainsByLean. Useful for building lean-filtered
+ * outlet pickers in the sidebar.
+ * @param {"Left"|"Center"|"Right"|"Unrated"} category - Coarse lean bucket to filter by.
+ * @returns {string[]} Outlet names (as stored, lowercase) whose getLeanCategory matches.
+ */
+function getOutletsByLean(category) {
+  const names = [];
+  for (const [name] of OUTLET_DATA) {
+    if (getLeanCategory(name) === category) names.push(name);
+  }
+  return names;
+}
