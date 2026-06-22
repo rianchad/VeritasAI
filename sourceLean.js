@@ -859,3 +859,26 @@ function getBalanceScore(outletNames) {
   );
   return 1 - totalDeviation / maxDeviation;
 }
+
+/**
+ * Determines which coarse lean category appears most often in a list of
+ * outlets, using getLeanBreakdown for the tally. Complements getBalanceScore:
+ * where that returns "how skewed" a source list is, this returns "skewed
+ * toward what" — useful for labeling a story's overall slant in the sidebar
+ * (e.g. "Sources lean Left").
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {"Left"|"Center"|"Right"|"Unrated"|null} The most common category,
+ *   or null if outletNames is empty. Ties between categories are broken in
+ *   Left/Center/Right/Unrated order (the first-checked category wins ties).
+ */
+function getDominantLean(outletNames) {
+  if (!Array.isArray(outletNames) || outletNames.length === 0) return null;
+
+  const breakdown = getLeanBreakdown(outletNames);
+  const order = ["Left", "Center", "Right", "Unrated"];
+  let dominant = order[0];
+  for (const category of order) {
+    if (breakdown[category] > breakdown[dominant]) dominant = category;
+  }
+  return dominant;
+}
