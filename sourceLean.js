@@ -882,3 +882,68 @@ function getDominantLean(outletNames) {
   }
   return dominant;
 }
+
+/**
+ * Builds a single display-ready summary object for an outlet, bundling the
+ * pieces that are normally fetched separately (getOutletData, getLeanCategory,
+ * getTierLabel, getLeanBadgeClass) so callers building a credibility card
+ * don't need four lookups for one outlet.
+ * @param {string} outletName - Outlet name as returned by the server.
+ * @returns {{
+ *   name: string,
+ *   rated: boolean,
+ *   lean: string,
+ *   category: "Left"|"Right"|"Center"|"Unrated",
+ *   tier: number|null,
+ *   tierLabel: string|null,
+ *   badgeClass: string,
+ *   description: string|null,
+ *   allSides: string|null
+ * }} Summary of everything known about the outlet.
+ */
+function getOutletSummary(outletName) {
+  const data = getOutletData(outletName);
+  return {
+    name: outletName,
+    rated: Boolean(data),
+    lean: data ? data.lean : "Unrated",
+    category: getLeanCategory(outletName),
+    tier: data ? data.tier : null,
+    tierLabel: getTierLabel(outletName),
+    badgeClass: getLeanBadgeClass(outletName),
+    description: data ? data.description || null : null,
+    allSides: data ? data.allSides || null : null,
+  };
+}
+
+/**
+ * Converts a 0-1 balance score (see getBalanceScore) into a short, plain-
+ * English label for display in the sidebar, so callers don't need to
+ * hardcode their own thresholds.
+ * @param {number} score - Balance score as returned by getBalanceScore.
+ * @returns {"No rated sources"|"One-sided"|"Skewed"|"Somewhat balanced"|"Well balanced"}
+ */
+function describeBalanceScore(score) {
+  if (typeof score !== "number" || Number.isNaN(score)) return "No rated sources";
+  if (score < 0.25) return "One-sided";
+  if (score < 0.5) return "Skewed";
+  if (score < 0.75) return "Somewhat balanced";
+  return "Well balanced";
+}
+
+/**
+ * Ranks a list of outlets by credibility tier (1 = most authoritative),
+ * placing unrated outlets last. Useful for surfacing the most authoritative
+ * sources first in a citation list.
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {string[]} A new array, sorted by tier ascending (unrated last).
+ */
+function sortOutletsByTier(outletNames) {
+  if (!Array.isArray(outletNames)) return [];
+  const UNRATED_TIER = Number.MAX_SAFE_INTEGER;
+  return [...outletNames].sort((a, b) => {
+    const tierA = getOutletData(a)?.tier ?? UNRATED_TIER;
+    const tierB = getOutletData(b)?.tier ?? UNRATED_TIER;
+    return tierA - tierB;
+  });
+}
