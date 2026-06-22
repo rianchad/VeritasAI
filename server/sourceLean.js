@@ -532,6 +532,45 @@ function getLeanSummary(urls, balancedThreshold = 0.85) {
   return `Leans ${dominant} (${tally})`;
 }
 
+/**
+ * Computes a single composite "source quality" score in [0, 1] for a set of
+ * source URLs, blending three signals that each capture a different facet of
+ * citation quality: how politically balanced the sources are
+ * (spectrumDiversity), how much of the citation list is primary-source
+ * material (primarySourceRatio), and how much of the list has a known lean
+ * rating at all (ratingCoverage). Complements getSourceDiversityReport, which
+ * exposes these signals separately, by giving callers a single number for
+ * e.g. sorting or flagging stories that need better sourcing.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @param {{diversity?: number, primary?: number, coverage?: number}} [weights]
+ *   Relative weights for each signal. Defaults favor diversity slightly over
+ *   primary-source ratio and coverage. Weights are normalized internally, so
+ *   they don't need to sum to 1.
+ * @returns {number} Composite quality score in [0, 1]; 0 if urls is empty.
+ */
+function getSourceQualityScore(
+  urls,
+  weights = { diversity: 0.4, primary: 0.3, coverage: 0.3 }
+) {
+  const safeUrls = Array.isArray(urls) ? urls : [];
+  if (safeUrls.length === 0) return 0;
+
+  const { diversity = 0.4, primary = 0.3, coverage = 0.3 } = weights;
+  const totalWeight = diversity + primary + coverage;
+  if (totalWeight <= 0) return 0;
+
+  const diversityScore = getSpectrumDiversity(safeUrls);
+  const primaryScore = getPrimarySourceRatio(safeUrls);
+  const coverageScore = getRatingCoverage(safeUrls);
+
+  return (
+    (diversity * diversityScore +
+      primary * primaryScore +
+      coverage * coverageScore) /
+    totalWeight
+  );
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -551,4 +590,5 @@ module.exports = {
   getDomainBreakdown,
   getTopDomains,
   getLeanSummary,
+  getSourceQualityScore,
 };
