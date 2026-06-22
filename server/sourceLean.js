@@ -380,6 +380,46 @@ function getRatingCoverage(urls) {
   return rated / urls.length;
 }
 
+/**
+ * Reports what fraction of a set of source URLs come from primary sources
+ * (government, official wire dispatch, academic, or intergovernmental
+ * domains), per isPrimarySource. Complements getRatingCoverage — that
+ * measures how much of a source list has a lean rating, this measures how
+ * much of it is primary-source material, useful for an "evidence quality"
+ * indicator alongside the spectrum-diversity score.
+ * @param {string[]} urls - Absolute URLs of sources to check.
+ * @returns {number} Fraction in [0, 1] of URLs that are primary sources; 0 if
+ *   urls is empty or not an array.
+ */
+function getPrimarySourceRatio(urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return 0;
+  const primary = urls.filter((url) => isPrimarySource(url)).length;
+  return primary / urls.length;
+}
+
+/**
+ * Returns the subset of source URLs that qualify as primary sources, per
+ * isPrimarySource, de-duplicated by domain. Complements
+ * getPrimarySourceRatio (which gives a single coverage number) by listing
+ * which specific domains contributed primary-source material, e.g. for
+ * citing "this story draws on apnews.com and sec.gov directly".
+ * @param {string[]} urls - Absolute URLs of sources to check.
+ * @returns {string[]} Unique domains that are primary sources, in the order
+ *   they first appeared.
+ */
+function getPrimarySourceDomains(urls) {
+  if (!Array.isArray(urls)) return [];
+  const seen = new Set();
+  const primaryDomains = [];
+  for (const url of urls) {
+    const domain = getDomain(url);
+    if (!domain || seen.has(domain)) continue;
+    seen.add(domain);
+    if (isPrimarySource(url)) primaryDomains.push(domain);
+  }
+  return primaryDomains;
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -393,4 +433,6 @@ module.exports = {
   getDominantLean,
   getUnratedDomains,
   getRatingCoverage,
+  getPrimarySourceRatio,
+  getPrimarySourceDomains,
 };
