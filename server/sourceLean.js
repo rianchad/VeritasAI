@@ -297,6 +297,54 @@ function getSpectrumDiversity(urls) {
 }
 
 /**
+ * Scores how balanced a list of source URLs is across the political
+ * spectrum, based on getLeanCounts. A score of 1 means an even split between
+ * rated Left/Center/Right sources; a score of 0 means all rated sources
+ * share a single lean. Unrated sources are excluded since they carry no
+ * lean information. Mirrors the client-side getBalanceScore in sourceLean.js.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @returns {number} Balance score between 0 (one-sided) and 1 (evenly balanced).
+ */
+function getBalanceScore(urls) {
+  const counts = getLeanCounts(urls);
+  const rated = [counts.Left, counts.Center, counts.Right];
+  const total = rated.reduce((sum, count) => sum + count, 0);
+  if (total === 0) return 0;
+
+  const proportions = rated.map((count) => count / total);
+  const evenProportion = 1 / 3;
+  const maxDeviation = (1 - evenProportion) * 2;
+  const totalDeviation = proportions.reduce(
+    (sum, p) => sum + Math.abs(p - evenProportion),
+    0
+  );
+  return 1 - totalDeviation / maxDeviation;
+}
+
+/**
+ * Determines which coarse lean category appears most often among a list of
+ * source URLs, using getLeanCounts for the tally. Complements
+ * getBalanceScore: where that returns "how skewed" a source list is, this
+ * returns "skewed toward what" — useful for labeling a story's overall
+ * slant (e.g. "Sources lean Left"). Mirrors the client-side getDominantLean.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @returns {"Left"|"Center"|"Right"|"Unrated"|null} The most common
+ *   category, or null if urls is empty. Ties between categories are broken
+ *   in Left/Center/Right/Unrated order (the first-checked category wins).
+ */
+function getDominantLean(urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return null;
+
+  const counts = getLeanCounts(urls);
+  const order = ["Left", "Center", "Right", "Unrated"];
+  let dominant = order[0];
+  for (const category of order) {
+    if (counts[category] > counts[dominant]) dominant = category;
+  }
+  return dominant;
+}
+
+/**
  * Returns the subset of source URLs whose domain has no entry in
  * LEAN_BY_DOMAIN, de-duplicated by domain. Mirrors the client-side
  * getUnratedOutlets helper in sourceLean.js; useful for spotting which
@@ -341,6 +389,8 @@ module.exports = {
   getDomainsByLean,
   getLeanCounts,
   getSpectrumDiversity,
+  getBalanceScore,
+  getDominantLean,
   getUnratedDomains,
   getRatingCoverage,
 };
