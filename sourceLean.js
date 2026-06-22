@@ -947,3 +947,41 @@ function sortOutletsByTier(outletNames) {
     return tierA - tierB;
   });
 }
+
+/**
+ * Returns the subset of outlet names that have no entry in OUTLET_DATA,
+ * de-duplicated and case/whitespace-normalized the same way getOutletData
+ * looks them up. Useful for spotting gaps in the credibility table: run this
+ * over the outlets cited across recent stories to see which display names
+ * still need a lean/tier entry added.
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {string[]} Unique, normalized names with no known rating, in the
+ *   order they first appeared.
+ */
+function getUnratedOutlets(outletNames) {
+  if (!Array.isArray(outletNames)) return [];
+  const seen = new Set();
+  const unrated = [];
+  for (const name of outletNames) {
+    if (!name) continue;
+    const normalized = name.trim().toLowerCase();
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    if (!getOutletData(normalized)) unrated.push(normalized);
+  }
+  return unrated;
+}
+
+/**
+ * Reports what fraction of a set of outlet citations are backed by rating
+ * data, complementing getUnratedOutlets (which lists the gaps) with a single
+ * number suitable for a "data coverage" indicator in the sidebar.
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {number} Fraction in [0, 1] of names with a known rating; 0 if
+ *   outletNames is empty or not an array.
+ */
+function getRatingCoverage(outletNames) {
+  if (!Array.isArray(outletNames) || outletNames.length === 0) return 0;
+  const rated = outletNames.filter((name) => getOutletData(name)).length;
+  return rated / outletNames.length;
+}

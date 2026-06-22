@@ -296,6 +296,42 @@ function getSpectrumDiversity(urls) {
   return entropy / Math.log(3);
 }
 
+/**
+ * Returns the subset of source URLs whose domain has no entry in
+ * LEAN_BY_DOMAIN, de-duplicated by domain. Mirrors the client-side
+ * getUnratedOutlets helper in sourceLean.js; useful for spotting which
+ * domains still need a lean rating added to LEAN_BY_DOMAIN.
+ * @param {string[]} urls - Absolute URLs of sources to check.
+ * @returns {string[]} Unique domains with no known lean rating, in the order
+ *   they first appeared.
+ */
+function getUnratedDomains(urls) {
+  if (!Array.isArray(urls)) return [];
+  const seen = new Set();
+  const unrated = [];
+  for (const url of urls) {
+    const domain = getDomain(url);
+    if (!domain || seen.has(domain)) continue;
+    seen.add(domain);
+    if (!isRatedSource(url)) unrated.push(domain);
+  }
+  return unrated;
+}
+
+/**
+ * Reports what fraction of a set of source URLs have a known lean rating,
+ * complementing getUnratedDomains (which lists the gaps) with a single
+ * number suitable for a "data coverage" indicator.
+ * @param {string[]} urls - Absolute URLs of sources to check.
+ * @returns {number} Fraction in [0, 1] of URLs with a known rating; 0 if
+ *   urls is empty or not an array.
+ */
+function getRatingCoverage(urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return 0;
+  const rated = urls.filter((url) => isRatedSource(url)).length;
+  return rated / urls.length;
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -305,4 +341,6 @@ module.exports = {
   getDomainsByLean,
   getLeanCounts,
   getSpectrumDiversity,
+  getUnratedDomains,
+  getRatingCoverage,
 };
