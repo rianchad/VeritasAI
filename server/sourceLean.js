@@ -420,6 +420,34 @@ function getPrimarySourceDomains(urls) {
   return primaryDomains;
 }
 
+/**
+ * Builds a single combined report on a set of source URLs, bundling the
+ * metrics most callers need together (lean counts, spectrum diversity,
+ * balance score, dominant lean, rating coverage, and primary-source ratio)
+ * so a caller doesn't have to invoke each helper separately and re-derive
+ * the same domain lookups multiple times.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @returns {{
+ *   counts: {Left: number, Center: number, Right: number, Unrated: number},
+ *   spectrumDiversity: number,
+ *   balanceScore: number,
+ *   dominantLean: "Left"|"Center"|"Right"|"Unrated"|null,
+ *   ratingCoverage: number,
+ *   primarySourceRatio: number,
+ * }} Combined diversity/quality report for the given URLs.
+ */
+function getSourceDiversityReport(urls) {
+  const safeUrls = Array.isArray(urls) ? urls : [];
+  return {
+    counts: getLeanCounts(safeUrls),
+    spectrumDiversity: getSpectrumDiversity(safeUrls),
+    balanceScore: getBalanceScore(safeUrls),
+    dominantLean: getDominantLean(safeUrls),
+    ratingCoverage: getRatingCoverage(safeUrls),
+    primarySourceRatio: getPrimarySourceRatio(safeUrls),
+  };
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -435,4 +463,5 @@ module.exports = {
   getRatingCoverage,
   getPrimarySourceRatio,
   getPrimarySourceDomains,
+  getSourceDiversityReport,
 };
