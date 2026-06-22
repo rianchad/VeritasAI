@@ -256,6 +256,46 @@ function getDomainsByLean(category) {
   });
 }
 
+/**
+ * Tallies how many of the given URLs fall into each coarse lean category.
+ * Useful for building a spectrum-diversity summary (e.g. "3 Left, 2 Center,
+ * 1 Right, 0 Unrated") across a set of sources cited in an article.
+ * @param {string[]} urls - Absolute URLs of sources to tally.
+ * @returns {{Left: number, Center: number, Right: number, Unrated: number}}
+ *   Count of URLs in each category.
+ */
+function getLeanCounts(urls) {
+  const counts = { Left: 0, Center: 0, Right: 0, Unrated: 0 };
+  for (const url of urls) {
+    counts[getLeanCategory(url)] += 1;
+  }
+  return counts;
+}
+
+/**
+ * Computes a spectrum-diversity score in [0, 1] for a set of source URLs,
+ * based on how evenly the rated sources are spread across Left/Center/Right.
+ * A single-sided set of sources scores 0; a perfectly even three-way split
+ * scores 1. Unrated sources are excluded from the calculation since they
+ * carry no lean signal. Returns 0 if there are no rated sources.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @returns {number} Diversity score between 0 (one-sided) and 1 (balanced).
+ */
+function getSpectrumDiversity(urls) {
+  const counts = getLeanCounts(urls);
+  const rated = counts.Left + counts.Center + counts.Right;
+  if (rated === 0) return 0;
+
+  // Normalized entropy across the three buckets: -sum(p*log(p)) / log(3).
+  const buckets = [counts.Left, counts.Center, counts.Right];
+  const entropy = buckets.reduce((sum, count) => {
+    if (count === 0) return sum;
+    const p = count / rated;
+    return sum - p * Math.log(p);
+  }, 0);
+  return entropy / Math.log(3);
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -263,4 +303,6 @@ module.exports = {
   isPrimarySource,
   isRatedSource,
   getDomainsByLean,
+  getLeanCounts,
+  getSpectrumDiversity,
 };
