@@ -434,6 +434,7 @@ function getPrimarySourceDomains(urls) {
  *   dominantLean: "Left"|"Center"|"Right"|"Unrated"|null,
  *   ratingCoverage: number,
  *   primarySourceRatio: number,
+ *   domainBreakdown: Array<{domain: string, lean: string, count: number, share: number}>,
  * }} Combined diversity/quality report for the given URLs.
  */
 function getSourceDiversityReport(urls) {
@@ -445,7 +446,46 @@ function getSourceDiversityReport(urls) {
     dominantLean: getDominantLean(safeUrls),
     ratingCoverage: getRatingCoverage(safeUrls),
     primarySourceRatio: getPrimarySourceRatio(safeUrls),
+    domainBreakdown: getDomainBreakdown(safeUrls),
   };
+}
+
+/**
+ * Breaks a set of source URLs down by individual domain rather than coarse
+ * lean category, tallying how many times each domain appears and what
+ * fraction of the (deduplicated) total it represents. Complements
+ * getLeanCounts: that groups by Left/Center/Right, this groups by the actual
+ * outlet, which is useful for a "sources cited" UI panel that wants to show
+ * e.g. "reuters.com (3x, 30%), nytimes.com (2x, 20%)" alongside the coarse
+ * spectrum breakdown.
+ * @param {string[]} urls - Absolute URLs of sources to tally.
+ * @returns {Array<{domain: string, lean: string, count: number, share: number}>}
+ *   One entry per distinct domain, sorted by count descending (ties broken by
+ *   first appearance order). `share` is count / urls.length, in [0, 1].
+ */
+function getDomainBreakdown(urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return [];
+
+  const order = [];
+  const countByDomain = new Map();
+  for (const url of urls) {
+    const domain = getDomain(url);
+    if (!domain) continue;
+    if (!countByDomain.has(domain)) {
+      countByDomain.set(domain, 0);
+      order.push(domain);
+    }
+    countByDomain.set(domain, countByDomain.get(domain) + 1);
+  }
+
+  return order
+    .map((domain) => ({
+      domain,
+      lean: LEAN_BY_DOMAIN[domain] || "Unrated",
+      count: countByDomain.get(domain),
+      share: countByDomain.get(domain) / urls.length,
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 module.exports = {
@@ -464,4 +504,5 @@ module.exports = {
   getPrimarySourceRatio,
   getPrimarySourceDomains,
   getSourceDiversityReport,
+  getDomainBreakdown,
 };
