@@ -488,6 +488,50 @@ function getDomainBreakdown(urls) {
     .sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Returns the N most-cited domains from a set of source URLs, built on top
+ * of getDomainBreakdown. Useful for a "top sources" UI panel that only wants
+ * to surface the handful of outlets that dominate a story's citations rather
+ * than the full per-domain breakdown.
+ * @param {string[]} urls - Absolute URLs of sources to tally.
+ * @param {number} [limit=3] - Maximum number of domains to return.
+ * @returns {Array<{domain: string, lean: string, count: number, share: number}>}
+ *   Up to `limit` entries from getDomainBreakdown, already sorted by count
+ *   descending.
+ */
+function getTopDomains(urls, limit = 3) {
+  if (!Number.isFinite(limit) || limit <= 0) return [];
+  return getDomainBreakdown(urls).slice(0, limit);
+}
+
+/**
+ * Builds a short, human-readable summary of a set of source URLs' political
+ * balance, e.g. "Balanced across the spectrum (3 Left, 2 Center, 3 Right)" or
+ * "Leans Left (4 Left, 1 Center, 0 Right)". Intended for a one-line label
+ * next to the numeric getBalanceScore/getDominantLean values, so callers
+ * don't have to hand-roll the same phrasing in multiple places.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @param {number} [balancedThreshold=0.85] - Minimum getBalanceScore for the
+ *   summary to read as "Balanced" rather than "Leans <category>".
+ * @returns {string} Human-readable balance summary. Returns "No rated
+ *   sources" if there are no Left/Center/Right sources to evaluate.
+ */
+function getLeanSummary(urls, balancedThreshold = 0.85) {
+  const counts = getLeanCounts(Array.isArray(urls) ? urls : []);
+  const rated = counts.Left + counts.Center + counts.Right;
+  const tally = `${counts.Left} Left, ${counts.Center} Center, ${counts.Right} Right`;
+
+  if (rated === 0) return "No rated sources";
+
+  const balanceScore = getBalanceScore(urls);
+  if (balanceScore >= balancedThreshold) {
+    return `Balanced across the spectrum (${tally})`;
+  }
+
+  const dominant = getDominantLean(urls);
+  return `Leans ${dominant} (${tally})`;
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -505,4 +549,6 @@ module.exports = {
   getPrimarySourceDomains,
   getSourceDiversityReport,
   getDomainBreakdown,
+  getTopDomains,
+  getLeanSummary,
 };
