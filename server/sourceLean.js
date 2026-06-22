@@ -571,6 +571,45 @@ function getSourceQualityScore(
   );
 }
 
+/**
+ * Returns the subset of source URLs whose coarse lean category matches the
+ * given bucket, per getLeanCategory. Complements getLeanCounts (which only
+ * tallies) and getDomainsByLean (which operates on the static table rather
+ * than an actual citation list) by letting a caller pull out, say, just the
+ * Left-leaning URLs cited in a story for closer inspection.
+ * @param {string[]} urls - Absolute URLs of sources to filter.
+ * @param {"Left"|"Center"|"Right"|"Unrated"} category - Coarse lean bucket to
+ *   filter by.
+ * @returns {string[]} URLs whose getLeanCategory matches, in original order.
+ */
+function filterByLean(urls, category) {
+  if (!Array.isArray(urls)) return [];
+  return urls.filter((url) => getLeanCategory(url) === category);
+}
+
+/**
+ * Converts a numeric getSourceQualityScore into a short human-readable label,
+ * mirroring how getLeanSummary turns getBalanceScore into prose. Intended for
+ * a UI badge (e.g. "Strong sourcing") next to the raw score, so callers don't
+ * have to hand-roll the same thresholds in multiple places.
+ * @param {string[]} urls - Absolute URLs of sources to evaluate.
+ * @param {{diversity?: number, primary?: number, coverage?: number}} [weights]
+ *   Forwarded to getSourceQualityScore.
+ * @returns {"No rated sources"|"Weak sourcing"|"Fair sourcing"|"Strong sourcing"|"Excellent sourcing"}
+ *   Label for the resulting score. Returns "No rated sources" if there are no
+ *   rated sources at all, distinguishing "no signal" from "low score".
+ */
+function getSourceQualityLabel(urls, weights) {
+  const safeUrls = Array.isArray(urls) ? urls : [];
+  if (getRatingCoverage(safeUrls) === 0) return "No rated sources";
+
+  const score = getSourceQualityScore(safeUrls, weights);
+  if (score >= 0.85) return "Excellent sourcing";
+  if (score >= 0.65) return "Strong sourcing";
+  if (score >= 0.4) return "Fair sourcing";
+  return "Weak sourcing";
+}
+
 module.exports = {
   getDomain,
   getLean,
@@ -591,4 +630,6 @@ module.exports = {
   getTopDomains,
   getLeanSummary,
   getSourceQualityScore,
+  filterByLean,
+  getSourceQualityLabel,
 };
