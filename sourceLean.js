@@ -816,3 +816,46 @@ function getOutletsByLean(category) {
   }
   return names;
 }
+
+/**
+ * Tallies how many outlets in a list fall into each coarse lean category,
+ * using getLeanCategory for the classification. Useful for summarizing the
+ * political balance of a set of sources shown to the user (e.g. all sources
+ * cited for a story).
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {{Left: number, Center: number, Right: number, Unrated: number}} Counts per category.
+ */
+function getLeanBreakdown(outletNames) {
+  const counts = { Left: 0, Center: 0, Right: 0, Unrated: 0 };
+  if (!Array.isArray(outletNames)) return counts;
+  for (const name of outletNames) {
+    const category = getLeanCategory(name);
+    counts[category] = (counts[category] || 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * Scores how balanced a list of outlets is across the political spectrum,
+ * based on getLeanBreakdown. A score of 1 means an even split between rated
+ * Left/Center/Right sources; a score of 0 means all rated sources share a
+ * single lean. Unrated outlets are excluded from the calculation since they
+ * carry no lean information.
+ * @param {string[]} outletNames - Outlet display names as returned by the server.
+ * @returns {number} Balance score between 0 (one-sided) and 1 (evenly balanced).
+ */
+function getBalanceScore(outletNames) {
+  const breakdown = getLeanBreakdown(outletNames);
+  const rated = [breakdown.Left, breakdown.Center, breakdown.Right];
+  const total = rated.reduce((sum, count) => sum + count, 0);
+  if (total === 0) return 0;
+
+  const proportions = rated.map((count) => count / total);
+  const evenProportion = 1 / 3;
+  const maxDeviation = (1 - evenProportion) * 2;
+  const totalDeviation = proportions.reduce(
+    (sum, p) => sum + Math.abs(p - evenProportion),
+    0
+  );
+  return 1 - totalDeviation / maxDeviation;
+}
